@@ -57,7 +57,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private containerTopValue: number = 0;
 
-  private isLoadingMoreItems: boolean = false;
+  private isLoadingItems: boolean = false;
 
   private node: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -191,18 +191,18 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private updateVisibleItems(scrollTop: number): void {
     const rect: Rectangle | null = this.getAnchorItem(scrollTop);
+    const anchorItem: RectInfo | null = rect ? rect.getRectInfo() : null;
 
-    if (rect) {
+    if (anchorItem && this.anchorItem !== anchorItem) {
       const { overscan }: VListProps = this.props;
-      const anchorItem: RectInfo = rect.getRectInfo();
       const startIndex: number = Math.max(0, anchorItem.index - (overscan as number));
       const endIndex: number = this.getEndIndex(anchorItem);
+
+      this.anchorItem = anchorItem;
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
-        this.anchorItem = anchorItem;
-        this.isLoadingMoreItems = false;
 
         this.updateOffset();
         this.setState({ visibleItems: this.getVisibleItems() });
@@ -215,13 +215,15 @@ export default class VList extends React.PureComponent<VListProps> {
     const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
     if (this.endIndex >= rows) {
-      if (!this.isLoadingMoreItems && hasMore) {
-        this.isLoadingMoreItems = true;
+      if (!this.isLoadingItems && hasMore) {
+        this.isLoadingItems = true;
 
         this.setState({ loadingStatus: LOADING_STATUS.LOADING });
 
         if (onLoadItems) {
           onLoadItems(() => {
+            this.isLoadingItems = false;
+
             const isEnded: boolean = !hasMore && onEnded;
 
             this.setState({ loadingStatus: isEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
@@ -276,14 +278,31 @@ export default class VList extends React.PureComponent<VListProps> {
   public componentDidMount(): void {
     const scrollable: HTMLElement = this.getScrollable();
 
-    this.endIndex = this.getEndIndex(this.anchorItem);
     this.containerTopValue = scrollable.getBoundingClientRect().top;
 
     this.updateRects();
-    this.updateOffset();
-    this.setState({ visibleItems: this.getVisibleItems() });
+    this.updateVisibleItems(this.scrollTop);
 
     scrollable.addEventListener('scroll', this.handleScroll, supportsPassive ? { passive: true, capture: false } : false);
+  }
+
+  public componentDidUpdate(props: VListProps, { rows: prevRows }: VListState): void {
+    const { rows }: VListState = this.state;
+
+    if (prevRows !== rows) {
+      this.updateRects();
+
+      if (prevRows > rows) {
+        const diff: number = prevRows - rows;
+
+        this.startIndex = Math.max(0, this.startIndex - diff);
+        this.endIndex = Math.max(rows, this.endIndex - diff);
+
+        this.updateOffset();
+      }
+
+      this.updateVisibleItems(this.scrollTop);
+    }
   }
 
   public componentWillUnmount(): void {
