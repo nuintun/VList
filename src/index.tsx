@@ -55,7 +55,7 @@ export default class VList extends React.PureComponent<VListProps> {
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
-  private containerTopValue: number = 0;
+  private scrollableTop: number = 0;
 
   private isLoadingItems: boolean = false;
 
@@ -116,7 +116,7 @@ export default class VList extends React.PureComponent<VListProps> {
       // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
       // The value of top is relative to the top of the scroll container element
       const { scrollTop }: HTMLElement = this.getScrollable();
-      const top: number = rect.top - this.containerTopValue + scrollTop;
+      const top: number = rect.top - this.scrollableTop + scrollTop;
 
       if (index === 0) {
         this.anchor = new Rectangle({ top, index, height: rect.height }).getRectInfo();
@@ -210,6 +210,20 @@ export default class VList extends React.PureComponent<VListProps> {
     }
   }
 
+  private onLoadItems(): void {
+    const { onLoadItems }: VListProps = this.props;
+
+    if (onLoadItems) {
+      this.isLoadingItems = true;
+
+      this.setState({ loadingStatus: LOADING_STATUS.LOADING });
+
+      onLoadItems((): void => {
+        this.isLoadingItems = false;
+      });
+    }
+  }
+
   private scrollUp(scrollTop: number): void {
     const { rows }: VListState = this.state;
     const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
@@ -217,13 +231,7 @@ export default class VList extends React.PureComponent<VListProps> {
     if (this.endIndex >= rows) {
       if (!this.isLoadingItems && onLoadItems) {
         if (hasMore) {
-          this.isLoadingItems = true;
-
-          this.setState({ loadingStatus: LOADING_STATUS.LOADING });
-
-          onLoadItems((): void => {
-            this.isLoadingItems = false;
-          });
+          this.onLoadItems();
         } else {
           this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
         }
@@ -275,12 +283,16 @@ export default class VList extends React.PureComponent<VListProps> {
   };
 
   public componentDidMount(): void {
+    const { rows }: VListState = this.state;
+    const { hasMore }: VListProps = this.props;
     const scrollable: HTMLElement = this.getScrollable();
 
-    this.containerTopValue = scrollable.getBoundingClientRect().top;
+    this.scrollableTop = scrollable.getBoundingClientRect().top;
 
     this.updateRects();
     this.updateVisibleItems(this.scrollTop);
+
+    hasMore && !rows && this.onLoadItems();
 
     scrollable.addEventListener('scroll', this.handleScroll, supportsPassive ? { passive: true, capture: false } : false);
   }
@@ -326,7 +338,7 @@ export default class VList extends React.PureComponent<VListProps> {
     }
   }
 
-  public renderStatus(): React.ReactNode {
+  private renderStatus(): React.ReactNode {
     const { rows }: VListState = this.state;
     const { hasMore, onLoading, placeholder }: VListProps = this.props;
 
@@ -337,7 +349,7 @@ export default class VList extends React.PureComponent<VListProps> {
     return placeholder;
   }
 
-  public renderItems(): React.ReactNode {
+  private renderItems(): React.ReactNode {
     const { paddingTop, paddingBottom, visibleItems }: VListState = this.state;
 
     return (

@@ -20,7 +20,7 @@ export interface ItemProps {
 export default class Item extends React.PureComponent<ItemProps> {
   private observer: ResizeObserver;
 
-  private readonly node: React.RefObject<HTMLDivElement> = React.createRef();
+  private node: React.RefObject<HTMLDivElement> = React.createRef();
 
   private onResize = (entries: ResizeObserverEntry[]): void => {
     const node: HTMLDivElement | null = this.node.current;
