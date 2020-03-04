@@ -63,7 +63,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
   // The info of anchor element
   // which is the first element in visible range
-  private anchor: RectInfo = { top: 0, left: 0, index: 0, width: 0, height: 0, bottom: 0 };
+  private anchor: RectInfo = { top: 0, index: 0, width: 0, height: 0, bottom: 0 };
 
   public state: VListState = {
     paddingTop: 0,
@@ -89,14 +89,14 @@ export default class VList extends React.PureComponent<VListProps> {
     } else if (rows > length) {
       const lastRect: Rectangle = this.rects[rows - 1];
       const { length: startIndex }: Rectangle[] = this.rects;
-      const { defaultItemHeight: defaultHeight }: VListProps = this.props;
+      const { defaultItemHeight: height }: VListProps = this.props;
 
       let top: number = lastRect ? lastRect.getBottom() : 0;
 
       for (let index: number = startIndex; index < rows; index++) {
-        this.rects.push(new Rectangle({ top, index, defaultHeight }));
+        this.rects.push(new Rectangle({ top, index, height }));
 
-        top += defaultHeight;
+        top += height;
       }
     }
   };
