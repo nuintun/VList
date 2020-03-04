@@ -63,7 +63,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
   // The info of anchor element
   // which is the first element in visible range
-  private anchorItem: RectInfo = { top: 0, left: 0, index: 0, width: 0, height: 0, bottom: 0 };
+  private anchor: RectInfo = { top: 0, left: 0, index: 0, width: 0, height: 0, bottom: 0 };
 
   public state: VListState = {
     paddingTop: 0,
@@ -91,9 +91,9 @@ export default class VList extends React.PureComponent<VListProps> {
       const { length: startIndex }: Rectangle[] = this.rects;
       const { defaultItemHeight: defaultHeight }: VListProps = this.props;
 
-      let top = lastRect ? lastRect.getBottom() : 0;
+      let top: number = lastRect ? lastRect.getBottom() : 0;
 
-      for (let index = startIndex; index < rows; index++) {
+      for (let index: number = startIndex; index < rows; index++) {
         this.rects.push(new Rectangle({ top, index, defaultHeight }));
 
         top += defaultHeight;
@@ -110,8 +110,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private onItemResize = (size: SizeInfo): void => {
     const { rect, index }: SizeInfo = size;
-
-    const rectangle = this.rects[index];
+    const rectangle: Rectangle = this.rects[index];
 
     if (rectangle) {
       // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
@@ -120,7 +119,7 @@ export default class VList extends React.PureComponent<VListProps> {
       const top: number = rect.top - this.containerTopValue + scrollTop;
 
       if (index === 0) {
-        this.anchorItem = new Rectangle({ top, index, height: rect.height }).getRectInfo();
+        this.anchor = new Rectangle({ top, index, height: rect.height }).getRectInfo();
       }
 
       rectangle.updateRectInfo({ top, width: rect.width, height: rect.height, index });
@@ -132,12 +131,13 @@ export default class VList extends React.PureComponent<VListProps> {
   };
 
   private updateOffset(): void {
+    const { rects }: VList = this;
     const { rows }: VListState = this.state;
     const { defaultItemHeight }: VListProps = this.props;
 
     this.setState({
       paddingBottom: (rows - this.endIndex) * defaultItemHeight,
-      paddingTop: this.rects[this.startIndex].getTop() - this.rects[0].getTop()
+      paddingTop: rects.length ? rects[this.startIndex].getTop() - rects[0].getTop() : 0
     });
   }
 
@@ -180,8 +180,8 @@ export default class VList extends React.PureComponent<VListProps> {
     const { rects }: VList = this;
     const { length }: Rectangle[] = rects;
 
-    for (let index = 0; index < length; index++) {
-      const rect = rects[index];
+    for (let index: number = 0; index < length; index++) {
+      const rect: Rectangle = rects[index];
 
       if (rect.getBottom() >= scrollTop) return rect;
     }
@@ -191,14 +191,14 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private updateVisibleItems(scrollTop: number): void {
     const rect: Rectangle | null = this.getAnchorItem(scrollTop);
-    const anchorItem: RectInfo | null = rect ? rect.getRectInfo() : null;
+    const anchor: RectInfo | null = rect ? rect.getRectInfo() : null;
 
-    if (anchorItem && this.anchorItem !== anchorItem) {
+    if (anchor && this.anchor !== anchor) {
       const { overscan }: VListProps = this.props;
-      const startIndex: number = Math.max(0, anchorItem.index - (overscan as number));
-      const endIndex: number = this.getEndIndex(anchorItem);
+      const startIndex: number = Math.max(0, anchor.index - (overscan as number));
+      const endIndex: number = this.getEndIndex(anchor);
 
-      this.anchorItem = anchorItem;
+      this.anchor = anchor;
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
@@ -229,14 +229,14 @@ export default class VList extends React.PureComponent<VListProps> {
         }
       } else {
       }
-    } else if (scrollTop > this.anchorItem.bottom) {
+    } else if (scrollTop > this.anchor.bottom) {
       this.updateVisibleItems(scrollTop);
     }
   }
 
   private scrollDown(scrollTop: number): void {
     // Hand is scrolling down, scrollTop is decreasing
-    if (scrollTop < this.anchorItem.top) {
+    if (scrollTop < this.anchor.top) {
       this.updateVisibleItems(scrollTop);
     }
   }
@@ -316,39 +316,45 @@ export default class VList extends React.PureComponent<VListProps> {
     const { loadingStatus }: VListState = this.state;
     const { onLoading, onEnded }: VListProps = this.props;
 
-    if (onEnded && loadingStatus === LOADING_STATUS.ENDING) {
-      return onEnded();
+    switch (loadingStatus) {
+      case LOADING_STATUS.LOADING:
+        return onLoading && onLoading();
+      case LOADING_STATUS.ENDING:
+        return onEnded && onEnded();
+      default:
+        return null;
+    }
+  }
+
+  public renderStatus(): React.ReactNode {
+    const { rows }: VListState = this.state;
+    const { hasMore, onLoading, placeholder }: VListProps = this.props;
+
+    if (hasMore && !rows) {
+      return onLoading ? onLoading() : null;
     }
 
-    if (onLoading && loadingStatus === LOADING_STATUS.LOADING) {
-      return onLoading();
-    }
+    return placeholder;
+  }
 
-    return null;
+  public renderItems(): React.ReactNode {
+    const { paddingTop, paddingBottom, visibleItems }: VListState = this.state;
+
+    return (
+      <div style={{ paddingTop, paddingBottom }}>
+        {visibleItems}
+        {this.renderLoading()}
+      </div>
+    );
   }
 
   public render(): React.ReactNode {
-    const { rows, paddingTop, paddingBottom, visibleItems }: VListState = this.state;
-    const { style, className, hasMore, placeholder, onLoading }: VListProps = this.props;
-
-    if (hasMore && !rows) {
-      return (
-        <div style={style} ref={this.node} className={className}>
-          {onLoading && onLoading()}
-        </div>
-      );
-    }
+    const { visibleItems }: VListState = this.state;
+    const { style, className }: VListProps = this.props;
 
     return (
       <div style={style} ref={this.node} className={className}>
-        {visibleItems.length ? (
-          <div style={{ paddingTop, paddingBottom }}>
-            {visibleItems}
-            {this.renderLoading()}
-          </div>
-        ) : (
-          placeholder
-        )}
+        {visibleItems.length ? this.renderItems() : this.renderStatus()}
       </div>
     );
   }
