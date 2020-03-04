@@ -211,15 +211,17 @@ export default class VList extends React.PureComponent<VListProps> {
   }
 
   private onLoadItems(): void {
-    const { onLoadItems }: VListProps = this.props;
+    const { onLoadItems, onEnded }: VListProps = this.props;
 
-    if (onLoadItems) {
+    if (!this.isLoadingItems && onLoadItems) {
       this.isLoadingItems = true;
 
       this.setState({ loadingStatus: LOADING_STATUS.LOADING });
 
       onLoadItems((): void => {
         this.isLoadingItems = false;
+
+        this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
       });
     }
   }
@@ -235,7 +237,6 @@ export default class VList extends React.PureComponent<VListProps> {
         } else {
           this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
         }
-      } else {
       }
     } else if (scrollTop > this.anchor.bottom) {
       this.updateVisibleItems(scrollTop);
@@ -340,33 +341,23 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private renderStatus(): React.ReactNode {
     const { rows }: VListState = this.state;
-    const { hasMore, onLoading, placeholder }: VListProps = this.props;
+    const { hasMore, placeholder }: VListProps = this.props;
 
-    if (hasMore && !rows) {
-      return onLoading ? onLoading() : null;
-    }
+    if (!hasMore && !rows) return placeholder;
 
-    return placeholder;
-  }
-
-  private renderItems(): React.ReactNode {
-    const { paddingTop, paddingBottom, visibleItems }: VListState = this.state;
-
-    return (
-      <div style={{ paddingTop, paddingBottom }}>
-        {visibleItems}
-        {this.renderLoading()}
-      </div>
-    );
+    return this.renderLoading();
   }
 
   public render(): React.ReactNode {
-    const { visibleItems }: VListState = this.state;
     const { style, className }: VListProps = this.props;
+    const { paddingTop, paddingBottom, visibleItems }: VListState = this.state;
 
     return (
       <div style={style} ref={this.node} className={className}>
-        {visibleItems.length ? this.renderItems() : this.renderStatus()}
+        <div style={{ paddingTop, paddingBottom }}>
+          {visibleItems}
+          {this.renderStatus()}
+        </div>
       </div>
     );
   }
