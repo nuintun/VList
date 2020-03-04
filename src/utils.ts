@@ -20,13 +20,3 @@ export const supportsPassive: boolean = ((): boolean => {
 
   return supportsPassive;
 })();
-
-export function isWindow(node: HTMLElement | Window): boolean {
-  return node === document.defaultView;
-}
-
-export function getDocument(): HTMLElement {
-  const { body }: Document = document;
-
-  return body.scrollTop ? body : document.documentElement;
-}
