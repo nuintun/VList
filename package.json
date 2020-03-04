@@ -1,6 +1,6 @@
 {
   "name": "@nuintun/vlist",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A virtualization list component, supports dynamic height.",
   "main": "es5/index.js",
   "module": "esnext/index.js",

@@ -327,13 +327,13 @@ export default class VList extends React.PureComponent<VListProps> {
 
   private renderLoading(): React.ReactNode {
     const { loadingStatus }: VListState = this.state;
-    const { onLoading, onEnded }: VListProps = this.props;
+    const { hasMore, onLoading, onEnded }: VListProps = this.props;
 
     switch (loadingStatus) {
       case LOADING_STATUS.LOADING:
-        return onLoading && onLoading();
+        return hasMore && onLoading ? onLoading() : null;
       case LOADING_STATUS.ENDING:
-        return onEnded && onEnded();
+        return !hasMore && onEnded ? onEnded() : null;
       default:
         return null;
     }
