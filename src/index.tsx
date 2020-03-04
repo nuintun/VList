@@ -113,16 +113,16 @@ export default class VList extends React.PureComponent<VListProps> {
     const rectangle: Rectangle = this.rects[index];
 
     if (rectangle) {
+      const { width, height }: DOMRect = rect;
       // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
       // The value of top is relative to the top of the scroll container element
-      const { scrollTop }: HTMLElement = this.getScrollable();
-      const top: number = rect.top - this.scrollableTop + scrollTop;
+      const top: number = rect.top - this.scrollableTop + this.scrollTop;
 
       if (index === 0) {
-        this.anchor = new Rectangle({ top, index, height: rect.height }).getRectInfo();
+        this.anchor = new Rectangle({ top, index, width, height }).getRectInfo();
       }
 
-      rectangle.updateRectInfo({ top, width: rect.width, height: rect.height, index });
+      rectangle.updateRectInfo({ top, index, width, height });
     }
   };
 
