@@ -215,20 +215,19 @@ export default class VList extends React.PureComponent<VListProps> {
     const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
     if (this.endIndex >= rows) {
-      if (!this.isLoadingItems && hasMore) {
-        this.isLoadingItems = true;
+      if (!this.isLoadingItems && onLoadItems) {
+        if (hasMore) {
+          this.isLoadingItems = true;
 
-        this.setState({ loadingStatus: LOADING_STATUS.LOADING });
+          this.setState({ loadingStatus: LOADING_STATUS.LOADING });
 
-        if (onLoadItems) {
-          onLoadItems(() => {
+          onLoadItems((): void => {
             this.isLoadingItems = false;
-
-            const isEnded: boolean = !hasMore && onEnded;
-
-            this.setState({ loadingStatus: isEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
           });
+        } else {
+          this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
         }
+      } else {
       }
     } else if (scrollTop > this.anchorItem.bottom) {
       this.updateVisibleItems(scrollTop);
