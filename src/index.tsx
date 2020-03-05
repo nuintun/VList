@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
+import Rectangle from './Rectangle';
 import Item, { SizeInfo } from './Item';
 import { supportsPassive } from './utils';
-import Rectangle, { RectInfo } from './Rectangle';
 
 export interface VListProps {
   data: any[];
@@ -63,7 +63,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
   // The info of anchor element
   // which is the first element in visible range
-  private anchor: RectInfo = { top: 0, index: 0, width: 0, height: 0, bottom: 0 };
+  private anchor: Rectangle = new Rectangle({ index: 0, height: this.props.defaultItemHeight });
 
   public state: VListState = {
     paddingTop: 0,
@@ -113,16 +113,21 @@ export default class VList extends React.PureComponent<VListProps> {
     const rectangle: Rectangle = this.rects[index];
 
     if (rectangle) {
-      const { width, height }: DOMRect = rect;
+      const { height }: DOMRect = rect;
+      const anchorIndex: number = this.anchor.getIndex();
       // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
       // The value of top is relative to the top of the scroll container element
       const top: number = rect.top - this.scrollableTop + this.scrollTop;
 
-      if (index === 0) {
-        this.anchor = new Rectangle({ top, index, width, height }).getRectInfo();
+      rectangle.updateRect({ top, index, height });
+
+      if (index === anchorIndex) {
+        this.anchor = new Rectangle({ top, index, height });
       }
 
-      rectangle.updateRectInfo({ top, index, width, height });
+      if (index === anchorIndex || index === this.startIndex || index === this.endIndex) {
+        this.updateVisibleItems(this.scrollTop);
+      }
     }
   };
 
@@ -148,19 +153,20 @@ export default class VList extends React.PureComponent<VListProps> {
     return Math.ceil(height / defaultItemHeight);
   }
 
-  private renderItem = (index: number): React.ReactNode => {
+  private renderItem = (data: any): React.ReactNode => {
+    const { children }: VListProps = this.props;
     const { isScrolling }: VListState = this.state;
-    const { data, children }: VListProps = this.props;
 
-    return children(data[index], isScrolling);
+    return children(data, isScrolling);
   };
 
   private getVisibleItems(): React.ReactNode[] {
     const items: React.ReactNode[] = [];
+    const { data }: VListProps = this.props;
 
     for (let index: number = this.startIndex; index < this.endIndex; index++) {
       items.push(
-        <Item key={index} index={index} onResize={this.onItemResize}>
+        <Item key={index} data={data[index]} index={index} onResize={this.onItemResize}>
           {this.renderItem}
         </Item>
       );
@@ -169,11 +175,11 @@ export default class VList extends React.PureComponent<VListProps> {
     return items;
   }
 
-  private getEndIndex(anchor: RectInfo): number {
+  private getEndIndex(anchor: Rectangle): number {
     const { rows }: VListState = this.state;
     const { overscan }: VListProps = this.props;
 
-    return Math.min(anchor.index + this.getVisibleCount() + (overscan as number) + 1, rows);
+    return Math.min(anchor.getIndex() + this.getVisibleCount() + (overscan as number) + 1, rows);
   }
 
   private getAnchorItem(scrollTop: number): Rectangle | null {
@@ -190,15 +196,14 @@ export default class VList extends React.PureComponent<VListProps> {
   }
 
   private updateVisibleItems(scrollTop: number): void {
-    const rect: Rectangle | null = this.getAnchorItem(scrollTop);
-    const anchor: RectInfo | null = rect ? rect.getRectInfo() : null;
+    const anchor: Rectangle | null = this.getAnchorItem(scrollTop);
 
-    if (anchor && this.anchor !== anchor) {
-      const { overscan }: VListProps = this.props;
-      const startIndex: number = Math.max(0, anchor.index - (overscan as number));
-      const endIndex: number = this.getEndIndex(anchor);
-
+    if (anchor && anchor !== this.anchor) {
       this.anchor = anchor;
+
+      const { overscan }: VListProps = this.props;
+      const startIndex: number = Math.max(0, anchor.getIndex() - (overscan as number));
+      const endIndex: number = this.getEndIndex(anchor);
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
@@ -238,14 +243,14 @@ export default class VList extends React.PureComponent<VListProps> {
           this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
         }
       }
-    } else if (scrollTop > this.anchor.bottom) {
+    } else if (scrollTop > this.anchor.getBottom()) {
       this.updateVisibleItems(scrollTop);
     }
   }
 
   private scrollDown(scrollTop: number): void {
     // Hand is scrolling down, scrollTop is decreasing
-    if (scrollTop < this.anchor.top) {
+    if (scrollTop < this.anchor.getTop()) {
       this.updateVisibleItems(scrollTop);
     }
   }
@@ -311,9 +316,10 @@ export default class VList extends React.PureComponent<VListProps> {
         this.endIndex = Math.max(rows, this.endIndex - diff);
 
         this.updateOffset();
+        this.setState({ visibleItems: this.getVisibleItems() });
+      } else {
+        this.updateVisibleItems(this.scrollTop);
       }
-
-      this.updateVisibleItems(this.scrollTop);
     }
   }
 

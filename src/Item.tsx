@@ -12,9 +12,10 @@ export interface SizeInfo {
 }
 
 export interface ItemProps {
+  data: any;
   index: number;
   onResize: (size: SizeInfo) => void;
-  children: (index: number) => React.ReactNode;
+  children: (data: any) => React.ReactNode;
 }
 
 export default class Item extends React.PureComponent<ItemProps> {
@@ -47,11 +48,11 @@ export default class Item extends React.PureComponent<ItemProps> {
   }
 
   public render(): React.ReactNode {
-    const { index, children }: ItemProps = this.props;
+    const { data, children }: ItemProps = this.props;
 
     return (
       <div ref={this.node} date-role="vlist-item">
-        {children(index)}
+        {children(data)}
       </div>
     );
   }
