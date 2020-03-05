@@ -126,7 +126,7 @@ export default class VList extends React.PureComponent<VListProps> {
       }
 
       if (index === anchorIndex || index === this.startIndex || index === this.endIndex) {
-        this.updateVisibleItems(this.scrollTop);
+        this.updateVisibleItems();
       }
     }
   };
@@ -175,13 +175,6 @@ export default class VList extends React.PureComponent<VListProps> {
     return items;
   }
 
-  private getEndIndex(anchor: Rectangle): number {
-    const { rows }: VListState = this.state;
-    const { overscan }: VListProps = this.props;
-
-    return Math.min(anchor.getIndex() + this.getVisibleCount() + (overscan as number) + 1, rows);
-  }
-
   private getAnchorItem(scrollTop: number): Rectangle | null {
     const { rects }: VList = this;
     const { length }: Rectangle[] = rects;
@@ -195,22 +188,38 @@ export default class VList extends React.PureComponent<VListProps> {
     return null;
   }
 
-  private updateVisibleItems(scrollTop: number): void {
+  private getStartIndex(anchor: Rectangle): number {
+    const { overscan }: VListProps = this.props;
+
+    return Math.max(0, anchor.getIndex() - (overscan as number));
+  }
+
+  private getEndIndex(anchor: Rectangle): number {
+    const { rows }: VListState = this.state;
+    const { overscan }: VListProps = this.props;
+
+    return Math.min(anchor.getIndex() + this.getVisibleCount() + (overscan as number) + 1, rows);
+  }
+
+  private updateVisibleItems(): void {
+    this.updateOffset();
+    this.setState({ visibleItems: this.getVisibleItems() });
+  }
+
+  private scrollUpdate(scrollTop: number): void {
     const anchor: Rectangle | null = this.getAnchorItem(scrollTop);
 
     if (anchor && anchor !== this.anchor) {
       this.anchor = anchor;
 
-      const { overscan }: VListProps = this.props;
-      const startIndex: number = Math.max(0, anchor.getIndex() - (overscan as number));
+      const startIndex: number = this.getStartIndex(anchor);
       const endIndex: number = this.getEndIndex(anchor);
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
         this.endIndex = endIndex;
 
-        this.updateOffset();
-        this.setState({ visibleItems: this.getVisibleItems() });
+        this.updateVisibleItems();
       }
     }
   }
@@ -244,14 +253,14 @@ export default class VList extends React.PureComponent<VListProps> {
         }
       }
     } else if (scrollTop > this.anchor.getBottom()) {
-      this.updateVisibleItems(scrollTop);
+      this.scrollUpdate(scrollTop);
     }
   }
 
   private scrollDown(scrollTop: number): void {
     // Hand is scrolling down, scrollTop is decreasing
     if (scrollTop < this.anchor.getTop()) {
-      this.updateVisibleItems(scrollTop);
+      this.scrollUpdate(scrollTop);
     }
   }
 
@@ -296,7 +305,7 @@ export default class VList extends React.PureComponent<VListProps> {
     this.scrollableTop = scrollable.getBoundingClientRect().top;
 
     this.updateRects();
-    this.updateVisibleItems(this.scrollTop);
+    this.updateVisibleItems();
 
     hasMore && !rows && this.onLoadItems();
 
@@ -314,12 +323,11 @@ export default class VList extends React.PureComponent<VListProps> {
 
         this.startIndex = Math.max(0, this.startIndex - diff);
         this.endIndex = Math.max(rows, this.endIndex - diff);
-
-        this.updateOffset();
-        this.setState({ visibleItems: this.getVisibleItems() });
       } else {
-        this.updateVisibleItems(this.scrollTop);
+        this.endIndex = this.getEndIndex(this.anchor);
       }
+
+      this.updateVisibleItems();
     }
   }
 
