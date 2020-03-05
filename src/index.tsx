@@ -117,7 +117,7 @@ export default class VList extends React.PureComponent<VListProps> {
       const anchorIndex: number = this.anchor.getIndex();
       // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
       // The value of top is relative to the top of the scroll container element
-      const top: number = rect.top - this.scrollableTop + this.scrollTop;
+      const top: number = rect.top - this.scrollableTop + this.getScrollable().scrollTop;
 
       rectangle.updateRect({ top, index, height });
 
@@ -175,7 +175,7 @@ export default class VList extends React.PureComponent<VListProps> {
     return items;
   }
 
-  private getAnchor(scrollTop: number): Rectangle | null {
+  private getAnchor(scrollTop: number): Rectangle {
     const { rects }: VList = this;
     const { length }: Rectangle[] = rects;
 
@@ -185,11 +185,11 @@ export default class VList extends React.PureComponent<VListProps> {
       if (rect.getBottom() >= scrollTop) return rect;
     }
 
-    return null;
+    return this.anchor;
   }
 
-  private setAnchor(anchor: Rectangle | null): void {
-    this.anchor = anchor ? anchor : this.anchor;
+  private setAnchor(anchor: Rectangle): void {
+    this.anchor = anchor;
   }
 
   private getStartIndex(anchor: Rectangle): number {
@@ -211,9 +211,9 @@ export default class VList extends React.PureComponent<VListProps> {
   }
 
   private scrollUpdate(scrollTop: number): void {
-    const anchor: Rectangle | null = this.getAnchor(scrollTop);
+    const anchor: Rectangle = this.getAnchor(scrollTop);
 
-    if (anchor && anchor !== this.anchor) {
+    if (anchor !== this.anchor) {
       const startIndex: number = this.getStartIndex(anchor);
       const endIndex: number = this.getEndIndex(anchor);
 
@@ -321,16 +321,10 @@ export default class VList extends React.PureComponent<VListProps> {
 
     if (prevRows !== rows) {
       this.updateRects();
-      this.setAnchor(this.getAnchor(this.scrollTop));
+      this.setAnchor(this.getAnchor(this.getScrollable().scrollTop));
 
-      if (prevRows > rows) {
-        const diff: number = prevRows - rows;
-
-        this.startIndex = Math.max(0, this.startIndex - diff);
-        this.endIndex = Math.max(rows, this.endIndex - diff);
-      } else {
-        this.endIndex = this.getEndIndex(this.anchor);
-      }
+      this.startIndex = this.getStartIndex(this.anchor);
+      this.endIndex = this.getEndIndex(this.anchor);
 
       this.updateVisibleItems();
     }
