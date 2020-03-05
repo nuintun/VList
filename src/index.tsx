@@ -87,13 +87,13 @@ export default class VList extends React.PureComponent<VListProps> {
     if (rows < length) {
       this.rects = this.rects.slice(0, rows);
     } else if (rows > length) {
-      const lastRect: Rectangle = this.rects[rows - 1];
-      const { length: startIndex }: Rectangle[] = this.rects;
+      const rectangle: Rectangle = this.rects[rows - 1];
       const { defaultItemHeight: height }: VListProps = this.props;
 
-      let top: number = lastRect ? lastRect.getBottom() : 0;
+      let index: number = this.rects.length;
+      let top: number = rectangle ? rectangle.getBottom() : 0;
 
-      for (let index: number = startIndex; index < rows; index++) {
+      for (; index < rows; index++) {
         this.rects.push(new Rectangle({ top, index, height }));
 
         top += height;
@@ -108,6 +108,22 @@ export default class VList extends React.PureComponent<VListProps> {
     return scrollable ? scrollable(node) : (this.node.current as HTMLDivElement);
   }
 
+  private updateRectsAfter(rect: Rectangle): void {
+    const { rects }: VList = this;
+    const { rows }: VListState = this.state;
+
+    let top: number = rect.getBottom();
+    let index: number = rect.getIndex() + 1;
+
+    for (; index < rows; index++) {
+      const rectangle: Rectangle = rects[index];
+
+      rectangle.updateRect({ top });
+
+      top += rectangle.getHeight();
+    }
+  }
+
   private onItemResize = (size: SizeInfo): void => {
     const { rect, index }: SizeInfo = size;
     const rectangle: Rectangle = this.rects[index];
@@ -119,12 +135,18 @@ export default class VList extends React.PureComponent<VListProps> {
       // The value of top is relative to the top of the scroll container element
       const top: number = rect.top - this.scrollableTop + this.getScrollable().scrollTop;
 
+      // Update rect
       rectangle.updateRect({ top, index, height });
 
+      // Update rects after current
+      this.updateRectsAfter(rectangle);
+
+      // Update anchor
       if (index === anchorIndex) {
-        this.setAnchor(new Rectangle({ top, index, height }));
+        this.setAnchor(rectangle);
       }
 
+      // Update items
       if (index === anchorIndex || index === this.startIndex || index === this.endIndex) {
         this.updateVisibleItems();
       }

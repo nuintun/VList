@@ -21,19 +21,23 @@ export default class Rectangle {
     this.height = height;
   }
 
-  getIndex(): number {
+  public getIndex(): number {
     return this.index;
   }
 
-  getTop(): number {
+  public getTop(): number {
     return this.top;
   }
 
-  getBottom(): number {
+  public getBottom(): number {
     return this.top + this.height;
   }
 
-  updateRect({ top, index, height }: RectInfo): void {
+  public getHeight(): number {
+    return this.height;
+  }
+
+  public updateRect({ top, index, height }: RectInfo): void {
     this.top = top != null ? top : this.top;
     this.index = index != null ? index : this.index;
     this.height = height != null ? height : this.height;
