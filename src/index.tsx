@@ -122,7 +122,7 @@ export default class VList extends React.PureComponent<VListProps> {
       rectangle.updateRect({ top, index, height });
 
       if (index === anchorIndex) {
-        this.anchor = new Rectangle({ top, index, height });
+        this.setAnchor(new Rectangle({ top, index, height }));
       }
 
       if (index === anchorIndex || index === this.startIndex || index === this.endIndex) {
@@ -175,7 +175,7 @@ export default class VList extends React.PureComponent<VListProps> {
     return items;
   }
 
-  private getAnchorItem(scrollTop: number): Rectangle | null {
+  private getAnchor(scrollTop: number): Rectangle | null {
     const { rects }: VList = this;
     const { length }: Rectangle[] = rects;
 
@@ -186,6 +186,10 @@ export default class VList extends React.PureComponent<VListProps> {
     }
 
     return null;
+  }
+
+  private setAnchor(anchor: Rectangle | null): void {
+    this.anchor = anchor ? anchor : this.anchor;
   }
 
   private getStartIndex(anchor: Rectangle): number {
@@ -207,13 +211,13 @@ export default class VList extends React.PureComponent<VListProps> {
   }
 
   private scrollUpdate(scrollTop: number): void {
-    const anchor: Rectangle | null = this.getAnchorItem(scrollTop);
+    const anchor: Rectangle | null = this.getAnchor(scrollTop);
 
     if (anchor && anchor !== this.anchor) {
-      this.anchor = anchor;
-
       const startIndex: number = this.getStartIndex(anchor);
       const endIndex: number = this.getEndIndex(anchor);
+
+      this.setAnchor(anchor);
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
@@ -317,6 +321,7 @@ export default class VList extends React.PureComponent<VListProps> {
 
     if (prevRows !== rows) {
       this.updateRects();
+      this.setAnchor(this.getAnchor(this.scrollTop));
 
       if (prevRows > rows) {
         const diff: number = prevRows - rows;
