@@ -90,8 +90,9 @@ export default class VList extends React.PureComponent<VListProps> {
       const rectangle: Rectangle = this.rects[rows - 1];
       const { defaultItemHeight: height }: VListProps = this.props;
 
-      let index: number = this.rects.length;
-      let top: number = rectangle ? rectangle.getBottom() : 0;
+      let index: number = length;
+      // If rectangle not exists, is first initialize
+      let top: number = rectangle ? rectangle.getBottom() : this.scrollableTop;
 
       for (; index < rows; index++) {
         this.rects.push(new Rectangle({ top, index, height }));

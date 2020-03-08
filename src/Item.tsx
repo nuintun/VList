@@ -6,9 +6,8 @@ import React from 'react';
 import ResizeObserver from 'resize-observer-polyfill';
 
 export interface SizeInfo {
-  index: number;
   rect: DOMRect;
-  entries: ResizeObserverEntry[];
+  index: number;
 }
 
 export interface ItemProps {
@@ -23,14 +22,14 @@ export default class Item extends React.PureComponent<ItemProps> {
 
   private node: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private onResize = (entries: ResizeObserverEntry[]): void => {
+  private onResize = (): void => {
     const node: HTMLDivElement | null = this.node.current;
 
     if (node) {
       const { index }: ItemProps = this.props;
       const rect: DOMRect = node.getBoundingClientRect();
 
-      this.props.onResize({ rect, index, entries });
+      this.props.onResize({ rect, index });
     }
   };
 
