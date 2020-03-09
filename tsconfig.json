@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "jsx": "react",
-    "target": "es5",
+    "target": "ES5",
     "newLine": "LF",
     "declaration": true,
     "alwaysStrict": true,
@@ -10,13 +10,13 @@
     "noUnusedLocals": true,
     "removeComments": false,
     "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
     "strictNullChecks": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node",
     "declarationDir": "typings",
     "noUnusedParameters": false,
     "experimentalDecorators": true,
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["es5", "esnext", "dom", "scripthost"]
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

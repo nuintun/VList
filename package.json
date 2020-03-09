@@ -1,6 +1,6 @@
 {
   "name": "@nuintun/vlist",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "A virtualization list component, supports dynamic height.",
   "main": "es5/index.js",
   "module": "esnext/index.js",
@@ -31,7 +31,7 @@
   "homepage": "https://github.com/nuintun/VList#readme",
   "dependencies": {
     "tslib": "^1.11.1",
-    "resize-observer-polyfill": "^1.5.1"
+    "@juggle/resize-observer": "^3.1.1"
   },
   "peerDependencies": {
     "react": ">=16.13.0",
