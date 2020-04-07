@@ -339,10 +339,11 @@ export default class VList extends React.PureComponent<VListProps> {
     scrollable.addEventListener('scroll', this.handleScroll, supportsPassive ? { passive: true, capture: false } : false);
   }
 
-  public componentDidUpdate(props: VListProps, { rows: prevRows }: VListState): void {
+  public componentDidUpdate({ data: prevData }: VListProps, { rows: prevRows }: VListState): void {
+    const { data }: VListProps = this.props;
     const { rows }: VListState = this.state;
 
-    if (prevRows !== rows) {
+    if (rows !== prevRows || data !== prevData) {
       this.updateRects();
       this.setAnchor(this.getAnchor(this.getScrollable().scrollTop));
 
