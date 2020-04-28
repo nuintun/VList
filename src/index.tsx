@@ -23,7 +23,7 @@ export interface VListProps {
   children: (item: any, isScrolling: boolean) => React.ReactNode;
 }
 
-enum LOADING_STATUS {
+const enum LOADING_STATUS {
   NONE,
   LOADING,
   ENDING
@@ -35,7 +35,7 @@ interface VListState {
   visibleItems: any[];
   isScrolling: boolean;
   paddingBottom: number;
-  loadingStatus: LOADING_STATUS;
+  loading: LOADING_STATUS;
 }
 
 export default class VList extends React.PureComponent<VListProps> {
@@ -71,7 +71,7 @@ export default class VList extends React.PureComponent<VListProps> {
     paddingBottom: 0,
     isScrolling: false,
     rows: this.props.data.length,
-    loadingStatus: LOADING_STATUS.NONE
+    loading: LOADING_STATUS.NONE
   };
 
   static getDerivedStateFromProps(props: VListProps, state: VListState): { rows: number } | null {
@@ -257,12 +257,12 @@ export default class VList extends React.PureComponent<VListProps> {
     if (!this.isLoadingItems && onLoadItems) {
       this.isLoadingItems = true;
 
-      this.setState({ loadingStatus: LOADING_STATUS.LOADING });
+      this.setState({ loading: LOADING_STATUS.LOADING });
 
       onLoadItems((): void => {
         this.isLoadingItems = false;
 
-        this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
+        this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
       });
     }
   }
@@ -276,7 +276,7 @@ export default class VList extends React.PureComponent<VListProps> {
         if (hasMore) {
           this.onLoadItems();
         } else {
-          this.setState({ loadingStatus: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
+          this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
         }
       }
     } else if (scrollTop > this.anchor.getBottom()) {
@@ -305,10 +305,11 @@ export default class VList extends React.PureComponent<VListProps> {
     // On iOS, we can arrive at negative offsets by swiping past the start.
     // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen.
     if (scrollTop >= 0) {
+      clearTimeout(this.timer);
+
       this.updateScrolling(true);
 
       // Set a timer to judge scroll of element is stopped
-      this.timer && clearTimeout(this.timer);
       this.timer = setTimeout(this.handleScrollEnd, 150);
 
       if (scrollTop > this.scrollTop) {
@@ -363,10 +364,10 @@ export default class VList extends React.PureComponent<VListProps> {
   }
 
   private renderLoading(): React.ReactNode {
-    const { loadingStatus }: VListState = this.state;
+    const { loading }: VListState = this.state;
     const { hasMore, onLoading, onEnded }: VListProps = this.props;
 
-    switch (loadingStatus) {
+    switch (loading) {
       case LOADING_STATUS.LOADING:
         return hasMore && onLoading ? onLoading() : null;
       case LOADING_STATUS.ENDING:
