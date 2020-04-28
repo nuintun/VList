@@ -365,8 +365,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private renderLoading(): React.ReactNode {
-    const { loading }: VListState = this.state;
+    const { rows, loading }: VListState = this.state;
     const { hasMore, onLoading, onEnded }: VListProps = this.props;
+
+    if (this.endIndex < rows) return null;
 
     switch (loading) {
       case LOADING_STATUS.LOADING:
