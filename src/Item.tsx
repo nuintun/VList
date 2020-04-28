@@ -5,7 +5,7 @@
 import React from 'react';
 import { ResizeObserver } from '@juggle/resize-observer';
 
-export interface SizeInfo {
+export interface ResizeEvent {
   rect: DOMRect;
   index: number;
 }
@@ -13,7 +13,7 @@ export interface SizeInfo {
 export interface ItemProps {
   data: any;
   index: number;
-  onResize: (size: SizeInfo) => void;
+  onResize: (size: ResizeEvent) => void;
   children: (data: any) => React.ReactNode;
 }
 

@@ -4,8 +4,8 @@
 
 import React from 'react';
 import Rectangle from './Rectangle';
-import Item, { SizeInfo } from './Item';
 import { supportsPassive } from './utils';
+import Item, { ResizeEvent } from './Item';
 
 export interface VListProps {
   data: any[];
@@ -125,8 +125,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private onItemResize = (size: SizeInfo): void => {
-    const { rect, index }: SizeInfo = size;
+  private onItemResize = (size: ResizeEvent): void => {
+    const { rect, index }: ResizeEvent = size;
     const rectangle: Rectangle = this.rects[index];
 
     if (rectangle) {
