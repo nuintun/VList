@@ -343,13 +343,15 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { data }: VListProps = this.props;
     const { rows }: VListState = this.state;
 
-    if (rows !== prevRows || data !== prevData) {
+    if (rows !== prevRows) {
       this.updateRects();
       this.setAnchor(this.getAnchor(this.getScrollable().scrollTop));
 
       this.startIndex = this.getStartIndex(this.anchor);
       this.endIndex = this.getEndIndex(this.anchor);
 
+      this.updateVisibleItems();
+    } else if (data !== prevData) {
       this.updateVisibleItems();
     }
   }
