@@ -125,8 +125,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private onItemResize = (size: ResizeEvent): void => {
-    const { rect, index }: ResizeEvent = size;
+  private onItemResize = ({ index, rect }: ResizeEvent): void => {
     const rectangle: Rectangle = this.rects[index];
 
     if (rectangle) {
