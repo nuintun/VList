@@ -38,7 +38,7 @@ interface VListState {
   loading: LOADING_STATUS;
 }
 
-export default class VList extends React.PureComponent<VListProps> {
+export default class VList extends React.PureComponent<VListProps, VListState> {
   static defaultProps = {
     overscan: 1,
     hasMore: false
