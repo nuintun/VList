@@ -38,6 +38,8 @@ interface VListState {
   loading: LOADING_STATUS;
 }
 
+type useCapture = { passive: boolean; capture: boolean } | boolean;
+
 export default class VList extends React.PureComponent<VListProps, VListState> {
   static defaultProps = {
     overscan: 1,
@@ -251,33 +253,30 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onLoadItems(): void {
-    const { onLoadItems, onEnded }: VListProps = this.props;
+    const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
     if (!this.isLoadingItems && onLoadItems) {
-      this.isLoadingItems = true;
+      if (hasMore) {
+        this.isLoadingItems = true;
 
-      this.setState({ loading: LOADING_STATUS.LOADING });
+        this.setState({ loading: LOADING_STATUS.LOADING });
 
-      onLoadItems((): void => {
-        this.isLoadingItems = false;
+        onLoadItems((): void => {
+          this.isLoadingItems = false;
 
+          this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
+        });
+      } else {
         this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
-      });
+      }
     }
   }
 
   private scrollUp(scrollTop: number): void {
     const { rows }: VListState = this.state;
-    const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
     if (this.endIndex >= rows) {
-      if (!this.isLoadingItems && onLoadItems) {
-        if (hasMore) {
-          this.onLoadItems();
-        } else {
-          this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
-        }
-      }
+      this.onLoadItems();
     } else if (scrollTop > this.anchor.getBottom()) {
       this.scrollUpdate(scrollTop);
     }
@@ -326,17 +325,17 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   public componentDidMount(): void {
     const { rows }: VListState = this.state;
-    const { hasMore }: VListProps = this.props;
     const scrollable: HTMLElement = this.getScrollable();
+    const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
     this.scrollableTop = scrollable.getBoundingClientRect().top;
 
     this.updateRects();
     this.updateVisibleItems();
 
-    hasMore && !rows && this.onLoadItems();
+    !rows && this.onLoadItems();
 
-    scrollable.addEventListener('scroll', this.handleScroll, supportsPassive ? { passive: true, capture: false } : false);
+    scrollable.addEventListener('scroll', this.handleScroll, capture);
   }
 
   public componentDidUpdate({ data: prevData }: VListProps, { rows: prevRows }: VListState): void {
@@ -360,8 +359,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     clearTimeout(this.timer);
 
     const scrollable: HTMLElement = this.getScrollable();
+    const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
-    scrollable.removeEventListener('scroll', this.handleScroll);
+    scrollable.removeEventListener('scroll', this.handleScroll, capture);
   }
 
   private renderLoading(): React.ReactNode {
