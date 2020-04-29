@@ -41,7 +41,7 @@ type useCapture = { passive: boolean; capture: boolean } | boolean;
 
 export default class VList extends React.PureComponent<VListProps, VListState> {
   static defaultProps = {
-    overscan: 1,
+    overscan: 6,
     hasMore: false
   };
 
