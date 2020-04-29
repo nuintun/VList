@@ -103,12 +103,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private updateRectsAfter(rect: Rectangle): void {
-    const { rects, props }: VList = this;
-    const rows: number = props.data.length;
+    const { rects }: VList = this;
 
     let top: number = rect.bottom;
 
-    for (let index: number = rect.index + 1; index < rows; index++) {
+    // Only need update to end index
+    for (let index: number = rect.index + 1; index < this.endIndex; index++) {
       const rectangle: Rectangle = rects[index];
 
       rectangle.update({ top });
