@@ -107,9 +107,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const rows: number = props.data.length;
 
     let top: number = rect.bottom;
-    let index: number = rect.index + 1;
 
-    for (; index < rows; index++) {
+    for (let index: number = rect.index + 1; index < rows; index++) {
       const rectangle: Rectangle = rects[index];
 
       rectangle.update({ top });
@@ -172,10 +171,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   };
 
   private getVisibleItems(): React.ReactNode[] {
+    const { endIndex }: VList = this;
     const items: React.ReactNode[] = [];
     const { data }: VListProps = this.props;
 
-    for (let index: number = this.startIndex; index < this.endIndex; index++) {
+    for (let index: number = this.startIndex; index < endIndex; index++) {
       items.push(
         <Item key={index} data={data[index]} index={index} onResize={this.onItemResize}>
           {this.renderItem}
