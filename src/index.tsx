@@ -19,23 +19,22 @@ export interface VListProps {
   onLoading?: () => React.ReactNode;
   onScroll?: (scrollTop: number) => void;
   onLoadItems?: (resolve: () => void) => void;
-  scrollable?: (node: HTMLElement) => HTMLElement;
+  scroller?: (node: HTMLElement) => HTMLElement;
   children: (item: any, isScrolling: boolean) => React.ReactNode;
 }
 
-const enum LOADING_STATUS {
+const enum STATUS {
   NONE,
   LOADING,
   ENDING
 }
 
 interface VListState {
-  rows: number;
+  status: STATUS;
   paddingTop: number;
   visibleItems: any[];
   isScrolling: boolean;
   paddingBottom: number;
-  loading: LOADING_STATUS;
 }
 
 type useCapture = { passive: boolean; capture: boolean } | boolean;
@@ -57,8 +56,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
-  private scrollableTop: number = 0;
-
   private isLoadingItems: boolean = false;
 
   private node: React.RefObject<HTMLDivElement> = React.createRef();
@@ -72,58 +69,52 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     visibleItems: [],
     paddingBottom: 0,
     isScrolling: false,
-    rows: this.props.data.length,
-    loading: LOADING_STATUS.NONE
+    status: STATUS.NONE
   };
 
-  static getDerivedStateFromProps(props: VListProps, state: VListState): { rows: number } | null {
-    const rows: number = props.data.length;
-
-    return rows !== state.rows ? { rows } : null;
-  }
-
   private updateRects = (): void => {
-    const { rows }: VListState = this.state;
-    const { length }: Rectangle[] = this.rects;
+    const { rects }: VList = this;
+    const rows: number = this.props.data.length;
+    const { length: rectRows }: Rectangle[] = rects;
 
-    if (rows < length) {
-      this.rects = this.rects.slice(0, rows);
-    } else if (rows > length) {
-      const rectangle: Rectangle = this.rects[rows - 1];
+    if (rows < rectRows) {
+      this.rects = rects.slice(0, rows);
+    } else if (rows > rectRows) {
+      const rectangle: Rectangle = rects[rectRows - 1];
       const { defaultItemHeight: height }: VListProps = this.props;
 
-      let index: number = length;
       // If rectangle not exists, is first initialize
-      let top: number = rectangle ? rectangle.getBottom() : this.scrollableTop;
+      let top: number = rectangle ? rectangle.bottom : 0;
 
-      for (; index < rows; index++) {
-        this.rects.push(new Rectangle({ top, index, height }));
+      for (let index: number = rectRows; index < rows; index++) {
+        rects.push(new Rectangle({ top, index, height }));
 
+        // Cumulative height
         top += height;
       }
     }
   };
 
-  private getScrollable(): HTMLElement {
-    const { scrollable }: VListProps = this.props;
+  private get scroller(): HTMLElement {
+    const { scroller }: VListProps = this.props;
     const node: HTMLElement = this.node.current as HTMLDivElement;
 
-    return scrollable ? scrollable(node) : (this.node.current as HTMLDivElement);
+    return scroller ? scroller(node) : (this.node.current as HTMLDivElement);
   }
 
   private updateRectsAfter(rect: Rectangle): void {
-    const { rects }: VList = this;
-    const { rows }: VListState = this.state;
+    const { rects, props }: VList = this;
+    const rows: number = props.data.length;
 
-    let top: number = rect.getBottom();
-    let index: number = rect.getIndex() + 1;
+    let top: number = rect.bottom;
+    let index: number = rect.index + 1;
 
     for (; index < rows; index++) {
       const rectangle: Rectangle = rects[index];
 
-      rectangle.updateRect({ top });
+      rectangle.update({ top });
 
-      top += rectangle.getHeight();
+      top += rectangle.height;
     }
   }
 
@@ -132,20 +123,20 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (rectangle) {
       const { height }: DOMRect = rect;
-      const anchorIndex: number = this.anchor.getIndex();
-      // https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
-      // The value of top is relative to the top of the scroll container element
-      const top: number = rect.top - this.scrollableTop + this.getScrollable().scrollTop;
+      const { scroller }: VList = this;
+      const anchorIndex: number = this.anchor.index;
+      const scrollerRect: DOMRect = scroller.getBoundingClientRect();
+      const top: number = rect.top - scrollerRect.top + scroller.scrollTop;
 
       // Update rect
-      rectangle.updateRect({ top, index, height });
+      rectangle.update({ top, index, height });
 
       // Update rects after current
       this.updateRectsAfter(rectangle);
 
       // Update anchor
       if (index === anchorIndex) {
-        this.setAnchor(rectangle);
+        this.anchor = rectangle;
       }
 
       // Update items
@@ -155,24 +146,20 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   };
 
-  private updateScrolling = (isScrolling: boolean): void => {
-    this.setState({ isScrolling });
-  };
-
   private updateOffset(): void {
-    const { rects }: VList = this;
-    const { rows }: VListState = this.state;
-    const { defaultItemHeight }: VListProps = this.props;
+    const { rects, props }: VList = this;
+    const { length: rectRows }: Rectangle[] = rects;
+    const { data, defaultItemHeight }: VListProps = props;
 
     this.setState({
-      paddingBottom: (rows - this.endIndex) * defaultItemHeight,
-      paddingTop: rects.length ? rects[this.startIndex].getTop() - rects[0].getTop() : 0
+      paddingTop: rectRows > this.startIndex ? rects[this.startIndex].top : 0,
+      paddingBottom: Math.max(0, data.length - this.endIndex) * defaultItemHeight
     });
   }
 
   private getVisibleCount(): number {
+    const height: number = this.scroller.offsetHeight;
     const { defaultItemHeight }: VListProps = this.props;
-    const height: number = this.getScrollable().offsetHeight;
 
     return Math.ceil(height / defaultItemHeight);
   }
@@ -200,33 +187,42 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private getAnchor(scrollTop: number): Rectangle {
-    const { rects }: VList = this;
-    const { length }: Rectangle[] = rects;
+    const { rects, anchor }: VList = this;
+    const anchorTop: number = anchor.top;
 
-    for (let index: number = 0; index < length; index++) {
-      const rect: Rectangle = rects[index];
+    if (anchorTop > scrollTop) {
+      for (let index: number = anchor.index; index >= 0; index--) {
+        const rect: Rectangle = rects[index];
 
-      if (rect.getBottom() >= scrollTop) return rect;
+        if (rect && rect.top <= scrollTop) return rect;
+      }
     }
 
-    return this.anchor;
-  }
+    const anchorBottom: number = anchor.bottom;
 
-  private setAnchor(anchor: Rectangle): void {
-    this.anchor = anchor;
+    if (anchorBottom < scrollTop) {
+      const { length: rectRows }: Rectangle[] = rects;
+
+      for (let index: number = anchor.index; index < rectRows; index++) {
+        const rect: Rectangle = rects[index];
+
+        if (rect && rect.bottom >= scrollTop) return rect;
+      }
+    }
+
+    return anchor;
   }
 
   private getStartIndex(anchor: Rectangle): number {
     const { overscan }: VListProps = this.props;
 
-    return Math.max(0, anchor.getIndex() - (overscan as number));
+    return Math.max(0, anchor.index - (overscan as number));
   }
 
   private getEndIndex(anchor: Rectangle): number {
-    const { rows }: VListState = this.state;
-    const { overscan }: VListProps = this.props;
+    const { data, overscan }: VListProps = this.props;
 
-    return Math.min(anchor.getIndex() + this.getVisibleCount() + (overscan as number) + 1, rows);
+    return Math.min(anchor.index + this.getVisibleCount() + (overscan as number) + 1, data.length);
   }
 
   private updateVisibleItems(): void {
@@ -238,10 +234,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const anchor: Rectangle = this.getAnchor(scrollTop);
 
     if (anchor !== this.anchor) {
+      this.anchor = anchor;
+
       const startIndex: number = this.getStartIndex(anchor);
       const endIndex: number = this.getEndIndex(anchor);
-
-      this.setAnchor(anchor);
 
       if (this.startIndex !== startIndex || this.endIndex !== endIndex) {
         this.startIndex = startIndex;
@@ -259,53 +255,55 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       if (hasMore) {
         this.isLoadingItems = true;
 
-        this.setState({ loading: LOADING_STATUS.LOADING });
+        this.setState({ status: STATUS.LOADING });
 
         onLoadItems((): void => {
           this.isLoadingItems = false;
 
-          this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
+          this.scroller.scrollTop = this.scrollTop;
+
+          this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
         });
       } else {
-        this.setState({ loading: onEnded ? LOADING_STATUS.ENDING : LOADING_STATUS.NONE });
+        this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
       }
     }
   }
 
   private scrollUp(scrollTop: number): void {
-    const { rows }: VListState = this.state;
+    const rows: number = this.props.data.length;
 
     if (this.endIndex >= rows) {
       this.onLoadItems();
-    } else if (scrollTop > this.anchor.getBottom()) {
+    } else if (scrollTop > this.anchor.bottom) {
       this.scrollUpdate(scrollTop);
     }
   }
 
   private scrollDown(scrollTop: number): void {
     // Hand is scrolling down, scrollTop is decreasing
-    if (scrollTop < this.anchor.getTop()) {
+    if (scrollTop < this.anchor.top) {
       this.scrollUpdate(scrollTop);
     }
   }
 
   private handleScrollEnd = (): void => {
     // Do something, when scroll stop
-    this.updateScrolling(false);
+    this.setState({ isScrolling: false });
   };
 
   private handleScroll = (): void => {
     const { onScroll }: VListProps = this.props;
     // Use the body element's scrollTop on iOS Safari/Webview
     // Because the documentElement element's scrollTop always is zero
-    const { scrollTop }: HTMLElement = this.getScrollable();
+    const { scrollTop }: HTMLElement = this.scroller;
 
     // On iOS, we can arrive at negative offsets by swiping past the start.
     // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen.
     if (scrollTop >= 0) {
       clearTimeout(this.timer);
 
-      this.updateScrolling(true);
+      this.setState({ isScrolling: true });
 
       // Set a timer to judge scroll of element is stopped
       this.timer = setTimeout(this.handleScrollEnd, 150);
@@ -324,33 +322,29 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   };
 
   public componentDidMount(): void {
-    const { rows }: VListState = this.state;
-    const scrollable: HTMLElement = this.getScrollable();
+    const scroller: HTMLElement = this.scroller;
+    const rows: number = this.props.data.length;
     const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
-
-    this.scrollableTop = scrollable.getBoundingClientRect().top;
 
     this.updateRects();
     this.updateVisibleItems();
 
     !rows && this.onLoadItems();
 
-    scrollable.addEventListener('scroll', this.handleScroll, capture);
+    scroller.addEventListener('scroll', this.handleScroll, capture);
   }
 
-  public componentDidUpdate({ data: prevData }: VListProps, { rows: prevRows }: VListState): void {
+  public componentDidUpdate({ data: prevData }: VListProps): void {
     const { data }: VListProps = this.props;
-    const { rows }: VListState = this.state;
 
-    if (rows !== prevRows) {
+    if (data !== prevData) {
       this.updateRects();
-      this.setAnchor(this.getAnchor(this.getScrollable().scrollTop));
+
+      this.anchor = this.getAnchor(this.scrollTop);
 
       this.startIndex = this.getStartIndex(this.anchor);
       this.endIndex = this.getEndIndex(this.anchor);
 
-      this.updateVisibleItems();
-    } else if (data !== prevData) {
       this.updateVisibleItems();
     }
   }
@@ -358,22 +352,22 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   public componentWillUnmount(): void {
     clearTimeout(this.timer);
 
-    const scrollable: HTMLElement = this.getScrollable();
+    const scroller: HTMLElement = this.scroller;
     const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
-    scrollable.removeEventListener('scroll', this.handleScroll, capture);
+    scroller.removeEventListener('scroll', this.handleScroll, capture);
   }
 
   private renderLoading(): React.ReactNode {
-    const { rows, loading }: VListState = this.state;
-    const { hasMore, onLoading, onEnded }: VListProps = this.props;
+    const { status }: VListState = this.state;
+    const { data, hasMore, onLoading, onEnded }: VListProps = this.props;
 
-    if (this.endIndex < rows) return null;
+    if (this.endIndex < data.length) return null;
 
-    switch (loading) {
-      case LOADING_STATUS.LOADING:
+    switch (status) {
+      case STATUS.LOADING:
         return hasMore && onLoading ? onLoading() : null;
-      case LOADING_STATUS.ENDING:
+      case STATUS.ENDING:
         return !hasMore && onEnded ? onEnded() : null;
       default:
         return null;
@@ -381,10 +375,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private renderStatus(): React.ReactNode {
-    const { rows }: VListState = this.state;
-    const { hasMore, placeholder }: VListProps = this.props;
+    const { data, hasMore, placeholder }: VListProps = this.props;
 
-    if (!hasMore && !rows) return placeholder;
+    if (!hasMore && !data.length) return placeholder;
 
     return this.renderLoading();
   }

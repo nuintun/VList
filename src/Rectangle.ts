@@ -2,44 +2,44 @@
  * @module Rectangle
  */
 
-export interface RectInfo {
+export interface Rect {
   top?: number;
   index?: number;
   height?: number;
 }
 
 export default class Rectangle {
-  private top: number;
+  private _top: number;
 
-  private index: number;
+  private _index: number;
 
-  private height: number;
+  private _height: number;
 
-  constructor({ top = 0, index = 0, height = 0 }: RectInfo = {}) {
-    this.top = top;
-    this.index = index;
-    this.height = height;
+  constructor({ top = 0, index = 0, height = 0 }: Rect = {}) {
+    this._top = top;
+    this._index = index;
+    this._height = height;
   }
 
-  public getIndex(): number {
-    return this.index;
+  public get index(): number {
+    return this._index;
   }
 
-  public getTop(): number {
-    return this.top;
+  public get top(): number {
+    return this._top;
   }
 
-  public getBottom(): number {
-    return this.top + this.height;
+  public get bottom(): number {
+    return this._top + this._height;
   }
 
-  public getHeight(): number {
-    return this.height;
+  public get height(): number {
+    return this._height;
   }
 
-  public updateRect({ top, index, height }: RectInfo): void {
-    this.top = top != null ? top : this.top;
-    this.index = index != null ? index : this.index;
-    this.height = height != null ? height : this.height;
+  public update({ top, index, height }: Rect = {}): void {
+    this._top = top != null ? top : this._top;
+    this._index = index != null ? index : this._index;
+    this._height = height != null ? height : this._height;
   }
 }
