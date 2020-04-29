@@ -230,9 +230,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.updateOffset();
 
     // Update items
-    this.setState({ visibleItems: this.getVisibleItems() }, () => {
-      this.scroller.scrollTop = this.scrollTop;
-    });
+    this.setState({ visibleItems: this.getVisibleItems() });
   }
 
   private scrollUpdate(scrollTop: number): void {
@@ -264,6 +262,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
         onLoadItems((): void => {
           this.isLoadingItems = false;
+
+          this.scroller.scrollTop = this.scrollTop;
 
           this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
         });
