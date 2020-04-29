@@ -213,15 +213,21 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private getStartIndex(anchor: Rectangle): number {
+    const { rects }: VList = this;
     const { overscan }: VListProps = this.props;
+    const { length: rectRows }: Rectangle[] = rects;
 
-    return Math.max(0, anchor.index - (overscan as number));
+    if (!rectRows) return 0;
+
+    return Math.max(0, Math.min(rectRows - 1, anchor.index) - (overscan as number));
   }
 
   private getEndIndex(anchor: Rectangle): number {
-    const { data, overscan }: VListProps = this.props;
+    const { rects }: VList = this;
+    const { overscan }: VListProps = this.props;
+    const { length: rectRows }: Rectangle[] = rects;
 
-    return Math.min(anchor.index + this.getVisibleCount() + (overscan as number) + 1, data.length);
+    return Math.min(rectRows, anchor.index + this.getVisibleCount() + (overscan as number) + 1);
   }
 
   private updateVisibleItems(): void {
