@@ -146,13 +146,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   };
 
   private updateOffset(): void {
-    const { rects, props }: VList = this;
+    const { rects }: VList = this;
     const { length: rectRows }: Rectangle[] = rects;
-    const { data, defaultItemHeight }: VListProps = props;
 
     this.setState({
       paddingTop: rectRows > this.startIndex ? rects[this.startIndex].top : 0,
-      paddingBottom: Math.max(0, data.length - this.endIndex) * defaultItemHeight
+      paddingBottom: rectRows && rectRows > this.endIndex ? rects[rectRows - 1].bottom - rects[this.endIndex].top : 0
     });
   }
 
