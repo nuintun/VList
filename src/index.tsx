@@ -161,9 +161,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   };
 
-  private getOffset(): Offset {
+  private getOffset(start: number, end: number): Offset {
     const { rects }: VList = this;
-    const { start, end }: VListState = this.state;
     const { length: rectRows }: Rectangle[] = rects;
 
     return {
@@ -172,16 +171,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     };
   }
 
-  private getItems(): React.ReactNode[] {
+  private getItems(start: number, end: number): React.ReactNode[] {
+    const { scrolling }: VListState = this.state;
     const { data, children }: VListProps = this.props;
-    const { start, end, scrolling }: VListState = this.state;
 
     const items: React.ReactNode[] = [];
     const rows: number = Math.min(data.length, end);
 
-    for (let index: number = start; index < rows; index++) {
+    for (; start < rows; start++) {
       items.push(
-        <Item key={index} data={data[index]} scrolling={scrolling} index={index} onResize={this.onItemResize}>
+        <Item key={start} index={start} data={data[start]} scrolling={scrolling} onResize={this.onItemResize}>
           {children}
         </Item>
       );
@@ -369,8 +368,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.scroller.removeEventListener('scroll', this.onScroll, useCapture);
   }
 
-  private renderLoading(): React.ReactNode {
-    const { status }: VListState = this.state;
+  private renderLoading(status: STATUS): React.ReactNode {
     const { data, hasMore, onLoading, onEnded }: VListProps = this.props;
 
     if (this.state.end < data.length) return null;
@@ -385,23 +383,24 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private renderStatus(): React.ReactNode {
+  private renderStatus(status: STATUS): React.ReactNode {
     const { data, hasMore, placeholder }: VListProps = this.props;
 
     if (!hasMore && !data.length) return placeholder;
 
-    return this.renderLoading();
+    return this.renderLoading(status);
   }
 
   public render(): React.ReactNode {
     const { style, className }: VListProps = this.props;
-    const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset();
+    const { start, end, status }: VListState = this.state;
+    const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(start, end);
 
     return (
       <div style={style} ref={this.node} className={className}>
         <div style={{ paddingTop, paddingBottom }}>
-          {this.getItems()}
-          {this.renderStatus()}
+          {this.getItems(start, end)}
+          {this.renderStatus(status)}
         </div>
       </div>
     );
