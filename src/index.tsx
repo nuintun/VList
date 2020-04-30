@@ -8,13 +8,13 @@ import Item, { ResizeEvent } from './Item';
 import { ResizeObserver } from '@juggle/resize-observer';
 import { cancelTimeout, requestTimeout, supportsPassive, TimeoutID } from './utils';
 
-export const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
+type overscan = number | 'auto';
 
 export interface VListProps {
   data: any[];
   hasMore?: boolean;
-  overscan?: number;
   className?: string;
+  overscan?: overscan;
   defaultItemHeight: number;
   style?: React.CSSProperties;
   placeholder?: React.ReactNode;
@@ -50,17 +50,33 @@ interface VisibleRange {
   end: number;
 }
 
+export const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
+
 type useCapture = { passive: boolean; capture: boolean } | boolean;
+
+const useCapture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
+
+function getOverscan(overscan: overscan, fallback: number) {
+  return overscan === 'auto' ? fallback : overscan;
+}
+
+function getScroller({ scroller }: VListProps, fallback: React.RefObject<HTMLElement>): HTMLElement {
+  const node: HTMLElement = fallback.current as HTMLElement;
+
+  return scroller ? scroller(node) : (node as HTMLElement);
+}
 
 export default class VList extends React.PureComponent<VListProps, VListState> {
   static defaultProps = {
-    overscan: 1,
-    hasMore: false
+    hasMore: false,
+    overscan: 'auto'
   };
 
   private timer: TimeoutID;
 
   private visible: number = 0;
+
+  private scroller: HTMLElement;
 
   private scrollTop: number = 0;
 
@@ -83,16 +99,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     status: STATUS.NONE
   };
 
-  private get scroller(): HTMLElement {
-    const { scroller }: VListProps = this.props;
-    const node: HTMLElement = this.node.current as HTMLDivElement;
-
-    return scroller ? scroller(node) : (this.node.current as HTMLDivElement);
-  }
-
   private updateRects = (): void => {
     const { rects }: VList = this;
-    const rows: number = this.props.data.length;
+    const { length: rows }: any[] = this.props.data;
     const { length: rectRows }: Rectangle[] = rects;
 
     if (rows < rectRows) {
@@ -210,18 +219,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private getStart(anchor: Rectangle): number {
     const { rects }: VList = this;
-    const { overscan }: VListProps = this.props;
     const { length: rectRows }: Rectangle[] = rects;
-
-    if (!rectRows) return 0;
+    const overscan = getOverscan(this.props.overscan as overscan, this.visible);
 
     return Math.max(0, Math.min(rectRows - 1, anchor.index) - (overscan as number));
   }
 
   private getEnd(anchor: Rectangle): number {
     const { rects, visible }: VList = this;
-    const { overscan }: VListProps = this.props;
     const { length: rectRows }: Rectangle[] = rects;
+    const overscan = getOverscan(this.props.overscan as overscan, this.visible);
 
     return Math.min(rectRows, anchor.index + visible + (overscan as number) + 1);
   }
@@ -307,14 +314,19 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   };
 
   public componentDidMount(): void {
-    const scroller: HTMLElement = this.scroller;
-    const rows: number = this.props.data.length;
-    const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
+    const { data }: VListProps = this.props;
+    const scroller: HTMLElement = getScroller(this.props, this.node);
 
+    // Cache scroller
+    this.scroller = scroller;
+
+    // Update rects
     this.updateRects();
 
-    !rows && this.onLoadItems();
+    // Load data while no data
+    !data.length && this.onLoadItems();
 
+    // Resize observer
     this.observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         if (entry.target === scroller) {
@@ -330,9 +342,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       }
     });
 
-    this.observer.observe(scroller);
+    this.observer.observe(this.scroller);
 
-    scroller.addEventListener('scroll', this.onScroll, capture);
+    scroller.addEventListener('scroll', this.onScroll, useCapture);
   }
 
   public componentDidUpdate({ data: prevData }: VListProps): void {
@@ -350,10 +362,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     this.observer.disconnect();
 
-    const scroller: HTMLElement = this.scroller;
-    const capture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
-
-    scroller.removeEventListener('scroll', this.onScroll, capture);
+    this.scroller.removeEventListener('scroll', this.onScroll, useCapture);
   }
 
   private renderLoading(): React.ReactNode {
