@@ -20,3 +20,29 @@ export const supportsPassive: boolean = ((): boolean => {
 
   return supportsPassive;
 })();
+
+export type TimeoutID = { id: number };
+
+const hasPerformance: boolean = performance && typeof performance.now === 'function';
+
+const now: () => number = hasPerformance ? () => performance.now() : () => Date.now();
+
+export function cancelTimeout(timeoutID: TimeoutID): void {
+  timeoutID && cancelAnimationFrame(timeoutID.id);
+}
+
+export function requestTimeout(callback: () => void, delay: number): TimeoutID {
+  const start: number = now();
+
+  const tick: () => void = (): void => {
+    if (now() - start >= delay) return callback();
+
+    timeoutID.id = requestAnimationFrame(tick);
+  };
+
+  const timeoutID: TimeoutID = {
+    id: requestAnimationFrame(tick)
+  };
+
+  return timeoutID;
+}

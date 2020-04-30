@@ -13,8 +13,9 @@ export interface ResizeEvent {
 export interface ItemProps {
   data: any;
   index: number;
+  scrolling: boolean;
   onResize: (size: ResizeEvent) => void;
-  children: (data: any) => React.ReactNode;
+  children: (data: any, scrolling: boolean) => React.ReactNode;
 }
 
 export default class Item extends React.PureComponent<ItemProps> {
@@ -35,11 +36,10 @@ export default class Item extends React.PureComponent<ItemProps> {
 
   public componentDidMount(): void {
     const node: HTMLDivElement | null = this.node.current;
-    const observer: ResizeObserver = new ResizeObserver(this.onResize);
 
-    observer.observe(node as HTMLDivElement);
+    this.observer = new ResizeObserver(this.onResize);
 
-    this.observer = observer;
+    this.observer.observe(node as HTMLDivElement);
   }
 
   public componentWillUnmount(): void {
@@ -47,12 +47,8 @@ export default class Item extends React.PureComponent<ItemProps> {
   }
 
   public render(): React.ReactNode {
-    const { data, children }: ItemProps = this.props;
+    const { data, scrolling, children }: ItemProps = this.props;
 
-    return (
-      <div ref={this.node} date-role="vlist-item">
-        {children(data)}
-      </div>
-    );
+    return <div ref={this.node}>{children(data, scrolling)}</div>;
   }
 }
