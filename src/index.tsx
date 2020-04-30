@@ -126,15 +126,19 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { rects }: VList = this;
     const { end }: VListState = this.state;
 
-    let top: number = rect.bottom;
+    // Only end item need update all rects after it
+    if (rect.index + 1 === end) {
+      let top: number = rect.bottom;
 
-    // Only need update to end index
-    for (let index: number = rect.index + 1; index < end; index++) {
-      const rectangle: Rectangle = rects[index];
+      const { length: rectRows }: Rectangle[] = rects;
 
-      rectangle.update({ top });
+      for (let index: number = rect.index + 1; index < rectRows; index++) {
+        const rectangle: Rectangle = rects[index];
 
-      top += rectangle.height;
+        rectangle.update({ top });
+
+        top += rectangle.height;
+      }
     }
   }
 
