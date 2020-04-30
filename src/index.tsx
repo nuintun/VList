@@ -36,7 +36,6 @@ interface VListState {
   start: number;
   end: number;
   status: STATUS;
-  loading: boolean;
   scrolling: boolean;
 }
 
@@ -80,6 +79,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private scrollTop: number = 0;
 
+  private loading: boolean = false;
+
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
@@ -94,7 +95,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   public state: VListState = {
     start: 0,
     end: 0,
-    loading: false,
     scrolling: false,
     status: STATUS.NONE
   };
@@ -247,14 +247,18 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private onLoadItems(): void {
     const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
-    if (!this.state.loading && onLoadItems) {
+    if (!this.loading && onLoadItems) {
       if (hasMore) {
-        this.setState({ loading: true, status: STATUS.LOADING });
+        this.loading = true;
+
+        this.setState({ status: STATUS.LOADING });
 
         onLoadItems((): void => {
+          this.loading = false;
+
           this.scroller.scrollTop = this.scrollTop;
 
-          this.setState({ loading: false, status: onEnded ? STATUS.ENDING : STATUS.NONE });
+          this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
         });
       } else {
         this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
