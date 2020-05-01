@@ -1,6 +1,6 @@
 # VList
 
-A virtualization list component, supports dynamic height.
+React virtual list component, support dynamic height.
 
 # Demo
 

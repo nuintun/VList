@@ -164,6 +164,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         // Update rects after current
         this.updateRectsAfter(rectangle);
       }
+
+      if (!this.state.scrolling && (top < rectangle.top || height < rectangle.height)) {
+        this.update(this.scrollTop);
+      }
     }
   };
 
@@ -222,20 +226,15 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     return anchor;
   }
 
-  private getStart(anchor: Rectangle): number {
-    const { rects }: VList = this;
-    const { length: rectRows }: Rectangle[] = rects;
-    const overscan = getOverscan(this.props.overscan as overscan, this.visible);
-
-    return Math.max(0, Math.min(rectRows - 1, anchor.index) - (overscan as number));
-  }
-
-  private getEnd(anchor: Rectangle): number {
+  private getRange(anchor: Rectangle): range {
     const { rects, visible }: VList = this;
     const { length: rectRows }: Rectangle[] = rects;
     const overscan = getOverscan(this.props.overscan as overscan, this.visible);
 
-    return Math.min(rectRows, anchor.index + visible + (overscan as number) + 1);
+    return [
+      Math.max(0, Math.min(rectRows - 1, anchor.index) - (overscan as number)),
+      Math.min(rectRows, anchor.index + visible + (overscan as number) + 1)
+    ];
   }
 
   private update(scrollTop: number): void {
@@ -243,8 +242,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     const { range }: VListState = this.state;
     const [prevStart, prevEnd]: range = range;
-    const start: number = this.getStart(this.anchor);
-    const end: number = this.getEnd(this.anchor);
+    const [start, end]: range = this.getRange(this.anchor);
 
     if (start !== prevStart || end !== prevEnd) {
       this.setState({ range: [start, end] });
@@ -258,22 +256,18 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private onLoadItems(): void {
     const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
-    if (!this.loading && onLoadItems) {
-      if (hasMore) {
-        this.loading = true;
+    if (hasMore && !this.loading && onLoadItems) {
+      this.loading = true;
 
-        this.setState({ status: STATUS.LOADING });
+      this.setState({ status: STATUS.LOADING });
 
-        onLoadItems((): void => {
-          this.loading = false;
+      onLoadItems((): void => {
+        this.loading = false;
 
-          this.scroller.scrollTop = this.scrollTop;
+        this.scroller.scrollTop = this.scrollTop;
 
-          this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
-        });
-      } else {
         this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
-      }
+      });
     }
   }
 
@@ -337,6 +331,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     // Update rects
     this.updateRects();
+
+    // Load items on init if no items
+    !this.props.items.length && this.onLoadItems();
 
     // Resize observer
     this.observer = new ResizeObserver(entries => {

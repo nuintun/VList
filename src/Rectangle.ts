@@ -42,8 +42,4 @@ export default class Rectangle {
     this._index = index != null ? index : this._index;
     this._height = height != null ? height : this._height;
   }
-
-  public equal(rectangle: Rectangle) {
-    return this._index === rectangle._index && this._top === rectangle._top && this._height === rectangle._height;
-  }
 }
