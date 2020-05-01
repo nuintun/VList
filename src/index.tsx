@@ -194,11 +194,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private getOffset([start, end]: range): Offset {
     const { rects }: VList = this;
-    const { length: rectRows }: Rectangle[] = rects;
+    const { items }: VListProps = this.props;
+    const rows: number = Math.min(items.length, rects.length);
 
     return {
-      top: rectRows > start ? rects[start].top : 0,
-      bottom: rectRows && rectRows > end ? rects[rectRows - 1].bottom - rects[end].top : 0
+      top: rows > start ? rects[start].top : 0,
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top : 0
     };
   }
 
@@ -269,18 +270,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private update(scrollTop: number): void {
     this.anchor = this.getAnchor(scrollTop);
 
-    const { range }: VListState = this.state;
-    const [prevStart, prevEnd]: range = range;
-    const [start, end]: range = this.getRange(this.anchor);
+    const [prevStart, prevEnd]: range = this.state.range;
+    const range: range = this.getRange(this.anchor);
+    const [start, end]: range = range;
 
     if (start !== prevStart || end !== prevEnd) {
-      const nextRange: range = [start, end];
+      this.setState({ range });
+    }
 
-      this.setState({ range: nextRange });
-
-      if (needLoadItems(this.props.items, nextRange)) {
-        this.onLoadItems();
-      }
+    if (needLoadItems(this.props.items, range)) {
+      this.onLoadItems();
     }
   }
 
@@ -354,6 +353,20 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     onScroll && onScroll(event);
   };
 
+  public scrollTo(index: number): void {
+    const { rects }: VList = this;
+    const rect: Rectangle = rects[index];
+
+    if (rect) {
+      const { top }: Rectangle = rect;
+
+      this.scrollTop = top;
+      this.scroller.scrollTop = top;
+
+      this.update(top);
+    }
+  }
+
   public componentDidMount(): void {
     const scroller: HTMLElement = getScroller(this.props, this.node);
 
@@ -392,7 +405,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (items !== prevItems) {
       this.updateRects();
-      this.update(this.scrollTop);
+
+      requestAnimationFrame(() => {
+        this.update(this.scrollTop);
+      });
     }
   }
 
