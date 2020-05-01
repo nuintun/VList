@@ -5,13 +5,15 @@
 import React from 'react';
 import { ResizeObserver } from '@juggle/resize-observer';
 
+export type items = any[];
+
 export interface ResizeEvent {
   rect: DOMRect;
   index: number;
 }
 
 export interface ItemProps {
-  data: any;
+  items: items;
   index: number;
   scrolling: boolean;
   onResize: (size: ResizeEvent) => void;
@@ -47,8 +49,8 @@ export default class Item extends React.PureComponent<ItemProps> {
   }
 
   public render(): React.ReactNode {
-    const { data, scrolling, children }: ItemProps = this.props;
+    const { items, scrolling, children }: ItemProps = this.props;
 
-    return <div ref={this.node}>{children(data, scrolling)}</div>;
+    return <div ref={this.node}>{children(items, scrolling)}</div>;
   }
 }

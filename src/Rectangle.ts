@@ -29,17 +29,21 @@ export default class Rectangle {
     return this._top;
   }
 
-  public get bottom(): number {
-    return this._top + this._height;
-  }
-
   public get height(): number {
     return this._height;
+  }
+
+  public get bottom(): number {
+    return this._top + this._height;
   }
 
   public update({ top, index, height }: Rect = {}): void {
     this._top = top != null ? top : this._top;
     this._index = index != null ? index : this._index;
     this._height = height != null ? height : this._height;
+  }
+
+  public equal(rectangle: Rectangle) {
+    return this._index === rectangle._index && this._top === rectangle._top && this._height === rectangle._height;
   }
 }
