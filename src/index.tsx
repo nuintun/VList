@@ -56,7 +56,7 @@ export const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
 const useCapture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
 function getOverscan(overscan: overscan, fallback: number) {
-  return overscan === 'auto' ? fallback : overscan;
+  return overscan === 'auto' || overscan < 0 ? fallback : overscan;
 }
 
 function getScroller({ scroller }: VListProps, fallback: React.RefObject<HTMLElement>): HTMLElement {
@@ -146,14 +146,17 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { rects }: VList = this;
     const [, end]: range = this.state.range;
 
+    // Next index
+    let next: number = rect.index + 1;
+
     // Only end item need update all rects after it
-    if (rect.index + 1 === end) {
+    if (next === end) {
       let top: number = rect.bottom;
 
       const { length: rectRows }: Rectangle[] = rects;
 
-      for (let index: number = rect.index + 1; index < rectRows; index++) {
-        const rectangle: Rectangle = rects[index];
+      for (; next < rectRows; ) {
+        const rectangle: Rectangle = rects[next++];
 
         rectangle.update({ top });
 
@@ -208,9 +211,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { scrolling }: VListState = this.state;
     const { items, children }: VListProps = this.props;
 
-    for (; start < end; start++) {
+    for (; start < end; ) {
       nodes.push(
-        <Item key={start} index={start} items={items[start]} scrolling={scrolling} onResize={this.onItemResize}>
+        <Item key={start} index={start} items={items[start++]} scrolling={scrolling} onResize={this.onItemResize}>
           {children}
         </Item>
       );
@@ -236,8 +239,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const anchorTop: number = anchor.top;
 
     if (anchorTop > scrollTop) {
-      for (let index: number = anchor.index; index >= 0; index--) {
-        const rect: Rectangle = rects[index];
+      for (let index: number = anchor.index; index >= 0; ) {
+        const rect: Rectangle = rects[index--];
 
         if (rect && rect.top <= scrollTop) return rect;
       }
@@ -246,8 +249,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const anchorBottom: number = anchor.bottom;
 
     if (anchorBottom < scrollTop) {
-      for (let index: number = anchor.index; index < rectRows; index++) {
-        const rect: Rectangle = rects[index];
+      for (let index: number = anchor.index; index < rectRows; ) {
+        const rect: Rectangle = rects[index++];
 
         if (rect && rect.bottom >= scrollTop) return rect;
       }
@@ -263,7 +266,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     return [
       Math.max(0, anchor.index - (overscan as number)),
-      Math.min(rectRows, anchor.index + visible + (overscan as number) + 1)
+      Math.min(rectRows, anchor.index + visible + (overscan as number))
     ];
   }
 
@@ -386,10 +389,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
           const { defaultItemHeight }: VListProps = this.props;
           const visible: number = Math.ceil(entry.contentRect.height / defaultItemHeight);
 
-          this.visible = visible;
+          if (visible !== this.visible) {
+            this.visible = visible;
 
-          this.update(this.scrollTop);
-
+            this.update(this.scrollTop);
+          }
           break;
         }
       }
