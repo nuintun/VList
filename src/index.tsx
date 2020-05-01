@@ -18,6 +18,12 @@ interface VListState {
   scrolling: boolean;
 }
 
+interface DerivedState {
+  range?: range;
+  status?: STATUS;
+  scrolling?: boolean;
+}
+
 interface Offset {
   top: number;
   bottom: number;
@@ -98,10 +104,25 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     status: STATUS.NONE
   };
 
+  public static getDerivedStateFromProps({ items }: VListProps, { range }: VListState): DerivedState | null {
+    const [start, end]: range = range;
+    const { length: rows }: items = items;
+
+    if (rows) {
+      if (rows && rows < end) {
+        return { range: [Math.min(rows - 1, start), rows] };
+      }
+    } else if (start || end) {
+      return { range: [0, 0] };
+    }
+
+    return null;
+  }
+
   private updateRects = (): void => {
     const { rects }: VList = this;
     const { length: rectRows }: Rectangle[] = rects;
-    const { length: rows }: any[] = this.props.items;
+    const { length: rows }: items = this.props.items;
 
     if (rows < rectRows) {
       this.rects = rects.slice(0, rows);
@@ -182,13 +203,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private getItems([start, end]: range): React.ReactNode[] {
+    const nodes: React.ReactNode[] = [];
     const { scrolling }: VListState = this.state;
     const { items, children }: VListProps = this.props;
 
-    const nodes: React.ReactNode[] = [];
-    const rows: number = Math.min(items.length, end);
-
-    for (; start < rows; start++) {
+    for (; start < end; start++) {
       nodes.push(
         <Item key={start} index={start} items={items[start]} scrolling={scrolling} onResize={this.onItemResize}>
           {children}
@@ -200,7 +219,19 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private getAnchor(scrollTop: number): Rectangle {
-    const { rects, anchor }: VList = this;
+    const { rects }: VList = this;
+    const { length: rectRows }: Rectangle[] = rects;
+
+    if (!rectRows) {
+      return new Rectangle({ index: 0, height: this.props.defaultItemHeight });
+    }
+
+    let { anchor }: VList = this;
+
+    if (anchor.index >= rectRows) {
+      anchor = rects[rectRows - 1];
+    }
+
     const anchorTop: number = anchor.top;
 
     if (anchorTop > scrollTop) {
@@ -214,8 +245,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const anchorBottom: number = anchor.bottom;
 
     if (anchorBottom < scrollTop) {
-      const { length: rectRows }: Rectangle[] = rects;
-
       for (let index: number = anchor.index; index < rectRows; index++) {
         const rect: Rectangle = rects[index];
 
@@ -229,10 +258,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private getRange(anchor: Rectangle): range {
     const { rects, visible }: VList = this;
     const { length: rectRows }: Rectangle[] = rects;
-    const overscan = getOverscan(this.props.overscan as overscan, this.visible);
+    const overscan: number = getOverscan(this.props.overscan as overscan, this.visible);
 
     return [
-      Math.max(0, Math.min(rectRows - 1, anchor.index) - (overscan as number)),
+      Math.max(0, anchor.index - (overscan as number)),
       Math.min(rectRows, anchor.index + visible + (overscan as number) + 1)
     ];
   }
