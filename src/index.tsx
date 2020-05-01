@@ -274,9 +274,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const [start, end]: range = this.getRange(this.anchor);
 
     if (start !== prevStart || end !== prevEnd) {
-      this.setState({ range: [start, end] });
+      const nextRange: range = [start, end];
 
-      if (needLoadItems(this.props.items, range)) {
+      this.setState({ range: nextRange });
+
+      if (needLoadItems(this.props.items, nextRange)) {
         this.onLoadItems();
       }
     }
