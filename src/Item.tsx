@@ -41,7 +41,7 @@ export default class Item extends React.PureComponent<ItemProps> {
 
     this.observer = new ResizeObserver(this.onResize);
 
-    this.observer.observe(node as HTMLDivElement);
+    this.observer.observe(node as HTMLDivElement, { box: 'border-box' });
   }
 
   public componentWillUnmount(): void {

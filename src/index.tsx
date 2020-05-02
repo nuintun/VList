@@ -444,7 +444,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       }
     });
 
-    this.observer.observe(this.scroller);
+    this.observer.observe(this.scroller, { box: 'border-box' });
 
     scroller.addEventListener('scroll', this.onScroll, useCapture);
   }
