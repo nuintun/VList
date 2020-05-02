@@ -350,8 +350,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       onLoadItems((): void => {
         this.loading = false;
 
-        this.scrollTop = this.location;
-
         this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
       });
     }
