@@ -142,18 +142,20 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   public scrollToIndex(index: number): void {
-    const { rects }: VList = this;
-    const rect: Rectangle = rects[index];
+    requestAnimationFrame(() => {
+      const { rects }: VList = this;
+      const rect: Rectangle = rects[index];
 
-    if (rect) {
-      const [start, end]: range = this.state.range;
+      if (rect) {
+        const [start, end]: range = this.state.range;
 
-      if (index < start || index >= end) {
-        this.index = index;
+        if (index < start || index >= end) {
+          this.index = index;
+        }
+
+        this.scrollTop = rect.top;
       }
-
-      this.update(rect.top);
-    }
+    });
   }
 
   private updateRects = (): void => {
