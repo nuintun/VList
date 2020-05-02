@@ -79,6 +79,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private timer: TimeoutID;
 
+  private offset: number = 0;
+
   private visible: number = 0;
 
   private scroller: HTMLElement;
@@ -172,7 +174,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       const { scroller }: VList = this;
       const { height }: DOMRect = rect;
       const scrollerRect: DOMRect = scroller.getBoundingClientRect();
-      const top: number = rect.top - scrollerRect.top + scroller.scrollTop;
+      const top: number = rect.top - scrollerRect.top - this.offset + scroller.scrollTop;
 
       if (top !== rectangle.top || height !== rectangle.height) {
         const { index: anchorIndex }: Rectangle = this.anchor;
@@ -387,7 +389,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       for (const entry of entries) {
         if (entry.target === scroller) {
           const { defaultItemHeight }: VListProps = this.props;
-          const visible: number = Math.ceil(entry.contentRect.height / defaultItemHeight);
+          const { top, height }: DOMRectReadOnly = entry.contentRect;
+          const visible: number = Math.ceil(height / defaultItemHeight);
+
+          this.offset = top;
 
           if (visible !== this.visible) {
             this.visible = visible;
