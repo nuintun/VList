@@ -10,10 +10,10 @@ export const supportsPassive: boolean = ((): boolean => {
   // Start test
   try {
     const options: AddEventListenerOptions = Object.defineProperty({}, 'passive', {
-      get: () => (supportsPassive = true)
+      get: (): boolean => (supportsPassive = true)
     });
 
-    window.addEventListener('test', () => true, options);
+    window.addEventListener('test', (): boolean => true, options);
   } catch {
     // Not supports passive
   }
@@ -25,7 +25,7 @@ export type TimeoutID = { id: number };
 
 const hasPerformance: boolean = performance && typeof performance.now === 'function';
 
-const now: () => number = hasPerformance ? () => performance.now() : () => Date.now();
+const now: () => number = hasPerformance ? (): number => performance.now() : (): number => Date.now();
 
 export function cancelTimeout(timeoutID: TimeoutID): void {
   timeoutID && cancelAnimationFrame(timeoutID.id);

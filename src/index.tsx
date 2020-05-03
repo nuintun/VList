@@ -5,7 +5,7 @@
 import React from 'react';
 import Rectangle from './Rectangle';
 import Item, { items, ResizeEvent } from './Item';
-import { ResizeObserver } from '@juggle/resize-observer';
+import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
 import { cancelTimeout, requestTimeout, supportsPassive, TimeoutID } from './utils';
 
 type range = [number, number];
@@ -77,6 +77,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private index: number = -1;
 
+  private extra: number = 0;
+
   private offset: number = 0;
 
   private visible: number = 0;
@@ -85,14 +87,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private viewport: HTMLElement;
 
-  private loading: boolean = false;
-
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
+  private loading: boolean = false;
+
   private observer: ResizeObserver;
 
-  private node: React.RefObject<HTMLDivElement> = React.createRef();
+  private window: React.RefObject<HTMLDivElement> = React.createRef();
+
+  private footer: React.RefObject<HTMLDivElement> = React.createRef();
 
   // The info of anchor element
   // which is the first element in visible range
@@ -138,7 +142,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   public scrollToIndex(index: number): void {
-    requestAnimationFrame(() => {
+    requestAnimationFrame((): void => {
       const { rects }: VList = this;
       const rect: Rectangle = rects[index];
 
@@ -295,11 +299,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private getOffset([start, end]: range): Offset {
     const { rects }: VList = this;
     const { items }: VListProps = this.props;
+    const { status }: VListState = this.state;
     const rows: number = Math.min(items.length, rects.length);
 
     return {
       top: rows > start ? rects[start].top : 0,
-      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top : 0
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + (status !== STATUS.NONE ? this.extra : 0) : 0
     };
   }
 
@@ -400,7 +405,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   public componentDidMount(): void {
     const { props }: VList = this;
-    const viewport: HTMLElement = getViewport(props, this.node);
+    const viewport: HTMLElement = getViewport(props, this.window);
 
     // Cache viewport
     this.viewport = viewport;
@@ -412,27 +417,40 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.onLoadItems();
 
     // Resize observer
-    this.observer = new ResizeObserver(entries => {
+    this.observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
       for (const entry of entries) {
-        if (entry.target === viewport) {
-          const { defaultItemHeight }: VListProps = this.props;
-          const itemHeight: number = Math.max(1, defaultItemHeight);
-          const { top, height }: DOMRectReadOnly = entry.contentRect;
-          const visible: number = Math.ceil(height / itemHeight) + 1;
+        const { height }: DOMRectReadOnly = entry.contentRect;
 
-          this.offset = top;
+        switch (entry.target) {
+          case viewport:
+            const { top }: DOMRectReadOnly = entry.contentRect;
+            const { defaultItemHeight }: VListProps = this.props;
+            const itemHeight: number = Math.max(1, defaultItemHeight);
+            const visible: number = Math.ceil(height / itemHeight) + 1;
 
-          if (visible !== this.visible) {
-            this.visible = visible;
+            this.offset = top;
 
-            this.update(this.scrollTop);
-          }
-          break;
+            if (visible !== this.visible) {
+              this.visible = visible;
+
+              this.update(this.scrollTop);
+            }
+            break;
+          case this.footer.current:
+            if ((height || this.state.status !== STATUS.NONE) && height !== this.extra) {
+              this.extra = height;
+
+              this.update(this.scrollTop);
+            }
+            break;
+          default:
+            break;
         }
       }
     });
 
     this.observer.observe(this.viewport, { box: 'border-box' });
+    this.observer.observe(this.footer.current as HTMLElement, { box: 'border-box' });
 
     viewport.addEventListener('scroll', this.onScroll, useCapture);
   }
@@ -443,7 +461,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     if (items !== prevItems) {
       this.updateRects();
 
-      requestAnimationFrame(() => {
+      requestAnimationFrame((): void => {
         this.update(this.scrollTop);
       });
     }
@@ -477,7 +495,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (!infinite && !items.length) return placeholder;
 
-    return this.renderLoading(status);
+    return <div ref={this.footer}>{this.renderLoading(status)}</div>;
   }
 
   public render(): React.ReactNode {
@@ -486,7 +504,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(range);
 
     return (
-      <div style={style} ref={this.node} className={className}>
+      <div style={style} ref={this.window} className={className}>
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
           {this.renderStatus(status)}
