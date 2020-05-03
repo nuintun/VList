@@ -299,12 +299,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private getOffset([start, end]: range): Offset {
     const { rects }: VList = this;
     const { items }: VListProps = this.props;
-    const { status }: VListState = this.state;
     const rows: number = Math.min(items.length, rects.length);
 
     return {
       top: rows > start ? rects[start].top : 0,
-      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + (status !== STATUS.NONE ? this.extra : 0) : 0
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + this.extra : 0
     };
   }
 
@@ -437,7 +436,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
             }
             break;
           case this.footer.current:
-            if ((height || this.state.status !== STATUS.NONE) && height !== this.extra) {
+            if ((height || this.state.status === STATUS.NONE) && height !== this.extra) {
               this.extra = height;
 
               this.update(this.scrollTop);
