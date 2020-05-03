@@ -342,8 +342,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (start !== prevStart || end !== prevEnd) {
       this.setState({ range });
-      this.onLoadItems();
     }
+
+    this.onLoadItems();
   }
 
   private scrollEnd = (): void => {
@@ -363,8 +364,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       this.setState({ scrolling: true });
 
       const { anchor, location }: VList = this;
-      const scrollDown: boolean = scrollTop < location && scrollTop < anchor.top;
-      const scrollUp: boolean = scrollTop > location && scrollTop > anchor.bottom;
+      const scrollDown: boolean = scrollTop < location && scrollTop <= anchor.top;
+      const scrollUp: boolean = scrollTop > location && scrollTop >= anchor.bottom;
 
       if (scrollUp || scrollDown) {
         this.update(scrollTop);
@@ -440,16 +441,15 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private renderLoading(status: STATUS): React.ReactNode {
-    const [, end]: range = this.state.range;
-    const { items, hasMore, onLoading, onEnded }: VListProps = this.props;
-
-    if (end < items.length) return null;
+    const { items, onLoading, onEnded }: VListProps = this.props;
 
     switch (status) {
       case STATUS.LOADING:
-        return hasMore && onLoading ? onLoading() : null;
+        if (onLoading) return onLoading();
       case STATUS.ENDING:
-        return !hasMore && onEnded ? onEnded() : null;
+        const [, end]: range = this.state.range;
+
+        if (onEnded && end >= items.length) return onEnded();
       default:
         return null;
     }
