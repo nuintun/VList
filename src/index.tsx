@@ -445,11 +445,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     switch (status) {
       case STATUS.LOADING:
-        if (onLoading) return onLoading();
+        return onLoading ? onLoading() : null;
       case STATUS.ENDING:
         const [, end]: range = this.state.range;
 
-        if (onEnded && end >= items.length) return onEnded();
+        return onEnded && end >= items.length ? onEnded() : null;
       default:
         return null;
     }
