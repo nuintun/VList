@@ -15,9 +15,10 @@ export interface ResizeEvent {
 export interface ItemProps {
   items: items;
   index: number;
+  scrollspy: boolean;
   scrolling: boolean;
   onResize: (size: ResizeEvent) => void;
-  children: (data: any, scrolling: boolean) => React.ReactNode;
+  children: (data: any, scrolling?: boolean) => React.ReactNode;
 }
 
 export default class Item extends React.PureComponent<ItemProps> {
@@ -49,8 +50,8 @@ export default class Item extends React.PureComponent<ItemProps> {
   }
 
   public render(): React.ReactNode {
-    const { items, scrolling, children }: ItemProps = this.props;
+    const { items, scrollspy, scrolling, children }: ItemProps = this.props;
 
-    return <div ref={this.node}>{children(items, scrolling)}</div>;
+    return <div ref={this.node}>{scrollspy ? children(items, scrolling) : children(items)}</div>;
   }
 }
