@@ -5,6 +5,7 @@
   "main": "es5/index.js",
   "module": "esnext/index.js",
   "typings": "typings/index.d.ts",
+  "sideEffects": false,
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "npm run build:es5 && npm run build:es6",
