@@ -65,12 +65,6 @@ function getScroller({ scroller }: VListProps, fallback: React.RefObject<HTMLEle
   return scroller ? scroller(node) : (node as HTMLElement);
 }
 
-function needLoadItems(items: items, [, end]: range): boolean {
-  const { length: rows }: items = items;
-
-  return !rows || end >= rows;
-}
-
 export default class VList extends React.PureComponent<VListProps, VListState> {
   static defaultProps = {
     hasMore: false,
@@ -131,9 +125,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
       scrollTop = scroller.scrollTop;
 
-      this.location = scrollTop;
-
       this.update(scrollTop);
+
+      this.location = scrollTop;
     }
   }
 
@@ -248,33 +242,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   };
 
-  private getOffset([start, end]: range): Offset {
-    const { rects }: VList = this;
-    const { items }: VListProps = this.props;
-    const rows: number = Math.min(items.length, rects.length);
-
-    return {
-      top: rows > start ? rects[start].top : 0,
-      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top : 0
-    };
-  }
-
-  private getItems([start, end]: range): React.ReactNode[] {
-    const nodes: React.ReactNode[] = [];
-    const { scrolling }: VListState = this.state;
-    const { items, children }: VListProps = this.props;
-
-    for (; start < end; ) {
-      nodes.push(
-        <Item key={start} index={start} items={items[start++]} scrolling={scrolling} onResize={this.onItemResize}>
-          {children}
-        </Item>
-      );
-    }
-
-    return nodes;
-  }
-
   private getAnchor(scrollTop: number): Rectangle {
     const { rects }: VList = this;
     const { length: rectRows }: Rectangle[] = rects;
@@ -323,26 +290,37 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     ];
   }
 
-  private update(scrollTop: number): void {
-    this.anchor = this.getAnchor(scrollTop);
+  private getOffset([start, end]: range): Offset {
+    const { rects }: VList = this;
+    const { items }: VListProps = this.props;
+    const rows: number = Math.min(items.length, rects.length);
 
-    const [prevStart, prevEnd]: range = this.state.range;
-    const range: range = this.getRange(this.anchor);
-    const [start, end]: range = range;
+    return {
+      top: rows > start ? rects[start].top : 0,
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top : 0
+    };
+  }
 
-    if (start !== prevStart || end !== prevEnd) {
-      this.setState({ range });
+  private getItems([start, end]: range): React.ReactNode[] {
+    const nodes: React.ReactNode[] = [];
+    const { scrolling }: VListState = this.state;
+    const { items, children }: VListProps = this.props;
+
+    for (; start < end; ) {
+      nodes.push(
+        <Item key={start} index={start} items={items[start++]} scrolling={scrolling} onResize={this.onItemResize}>
+          {children}
+        </Item>
+      );
     }
 
-    if (needLoadItems(this.props.items, range)) {
-      this.onLoadItems();
-    }
+    return nodes;
   }
 
   private onLoadItems(): void {
-    const { hasMore, onLoadItems, onEnded }: VListProps = this.props;
+    const { items, hasMore, onLoadItems, onEnded }: VListProps = this.props;
 
-    if (hasMore && !this.loading && onLoadItems) {
+    if (hasMore && !this.loading && onLoadItems && this.anchor.index + this.visible >= items.length) {
       this.loading = true;
 
       this.setState({ status: STATUS.LOADING });
@@ -355,21 +333,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private scrollUp(scrollTop: number): void {
-    const { items }: VListProps = this.props;
-    const { range }: VListState = this.state;
+  private update(scrollTop: number): void {
+    this.anchor = this.getAnchor(scrollTop);
 
-    if (needLoadItems(items, range)) {
+    const [prevStart, prevEnd]: range = this.state.range;
+    const range: range = this.getRange(this.anchor);
+    const [start, end]: range = range;
+
+    if (start !== prevStart || end !== prevEnd) {
+      this.setState({ range });
       this.onLoadItems();
-    } else if (scrollTop > this.anchor.bottom) {
-      this.update(scrollTop);
-    }
-  }
-
-  private scrollDown(scrollTop: number): void {
-    // Hand is scrolling down, scrollTop is decreasing
-    if (scrollTop < this.anchor.top) {
-      this.update(scrollTop);
     }
   }
 
@@ -389,18 +362,18 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
       this.setState({ scrolling: true });
 
-      const { location }: VList = this;
+      const { anchor, location }: VList = this;
+      const scrollDown: boolean = scrollTop < location && scrollTop < anchor.top;
+      const scrollUp: boolean = scrollTop > location && scrollTop > anchor.bottom;
+
+      if (scrollUp || scrollDown) {
+        this.update(scrollTop);
+      }
 
       this.location = scrollTop;
 
       // Set a timer to judge scroll of element is stopped
       this.timer = requestTimeout(this.scrollEnd, SCROLLING_DEBOUNCE_INTERVAL);
-
-      if (scrollTop > location) {
-        this.scrollUp(scrollTop);
-      } else if (scrollTop < location) {
-        this.scrollDown(scrollTop);
-      }
     }
 
     // Trigger user scroll handle
@@ -417,18 +390,17 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     // Update rects
     this.updateRects();
 
-    // Load items on init if no items
-    if (needLoadItems(props.items, this.state.range)) {
-      this.onLoadItems();
-    }
+    // Init items
+    this.onLoadItems();
 
     // Resize observer
     this.observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         if (entry.target === scroller) {
           const { defaultItemHeight }: VListProps = this.props;
+          const itemHeight: number = Math.max(1, defaultItemHeight);
           const { top, height }: DOMRectReadOnly = entry.contentRect;
-          const visible: number = Math.ceil(height / defaultItemHeight);
+          const visible: number = Math.ceil(height / itemHeight) + 1;
 
           this.offset = top;
 
