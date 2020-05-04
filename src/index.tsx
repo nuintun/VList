@@ -48,6 +48,7 @@ export interface VListProps {
 
 const enum STATUS {
   NONE,
+  HIDDEN,
   LOADING,
   ENDED
 }
