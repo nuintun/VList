@@ -332,17 +332,19 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onLoadItems(): void {
-    const { items, infinite, onLoadItems, onEnded }: VListProps = this.props;
+    const { items, infinite, onLoadItems, onLoading }: VListProps = this.props;
 
     if (infinite && !this.loading && onLoadItems && this.anchor.index + this.visible >= items.length) {
       this.loading = true;
 
-      this.setState({ status: STATUS.LOADING });
+      this.setState({ status: onLoading ? STATUS.LOADING : STATUS.NONE });
 
       onLoadItems((): void => {
         this.loading = false;
 
-        this.setState({ status: onEnded ? STATUS.ENDED : STATUS.NONE });
+        const { infinite, onEnded }: VListProps = this.props;
+
+        this.setState({ status: onEnded ? (infinite ? STATUS.HIDDEN : STATUS.ENDED) : STATUS.NONE });
       });
     }
   }
@@ -475,8 +477,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.viewport.removeEventListener('scroll', this.onScroll, useCapture);
   }
 
-  private renderLoading(status: STATUS): React.ReactNode {
-    const { items, onLoading, onEnded }: VListProps = this.props;
+  private renderStatus(status: STATUS): React.ReactNode {
+    const { items, infinite, placeholder }: VListProps = this.props;
+
+    if (!infinite && !items.length) return placeholder;
+
+    const { onLoading, onEnded }: VListProps = this.props;
 
     switch (status) {
       case STATUS.LOADING:
@@ -490,14 +496,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private renderStatus(status: STATUS): React.ReactNode {
-    const { items, infinite, placeholder }: VListProps = this.props;
-
-    if (!infinite && !items.length) return placeholder;
-
-    return <div ref={this.footer}>{this.renderLoading(status)}</div>;
-  }
-
   public render(): React.ReactNode {
     const { range, status }: VListState = this.state;
     const { style, className }: VListProps = this.props;
@@ -507,7 +505,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       <div style={style} ref={this.window} className={className}>
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
-          {this.renderStatus(status)}
+          <div ref={this.footer}>{this.renderStatus(status)}</div>
         </div>
       </div>
     );
