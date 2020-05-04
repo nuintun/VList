@@ -3,13 +3,13 @@
  */
 
 import React from 'react';
-import { ResizeObserver } from '@juggle/resize-observer';
+import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
 
 export type items = any[];
 
 export interface ResizeEvent {
-  rect: DOMRect;
   index: number;
+  rect: ResizeObserverEntry;
 }
 
 export interface ItemProps {
@@ -26,14 +26,13 @@ export default class Item extends React.PureComponent<ItemProps> {
 
   private node: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private onResize = (): void => {
-    const node: HTMLDivElement | null = this.node.current;
+  private onResize = (entries: ResizeObserverEntry[]): void => {
+    for (const entry of entries) {
+      if (entry.target === this.node.current) {
+        const { index }: ItemProps = this.props;
 
-    if (node) {
-      const { index }: ItemProps = this.props;
-      const rect: DOMRect = node.getBoundingClientRect();
-
-      this.props.onResize({ rect, index });
+        this.props.onResize({ index, rect: entry });
+      }
     }
   };
 
