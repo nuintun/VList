@@ -49,7 +49,7 @@ export interface VListProps {
 const enum STATUS {
   NONE,
   LOADING,
-  ENDING
+  ENDED
 }
 
 export const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
@@ -341,7 +341,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       onLoadItems((): void => {
         this.loading = false;
 
-        this.setState({ status: onEnded ? STATUS.ENDING : STATUS.NONE });
+        this.setState({ status: onEnded ? STATUS.ENDED : STATUS.NONE });
       });
     }
   }
@@ -480,7 +480,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     switch (status) {
       case STATUS.LOADING:
         return onLoading ? onLoading() : null;
-      case STATUS.ENDING:
+      case STATUS.ENDED:
         const [, end]: range = this.state.range;
 
         return onEnded && end >= items.length ? onEnded() : null;
