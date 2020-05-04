@@ -81,9 +81,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private timer: TimeoutID;
 
-  private index: number = -1;
+  private offset: number = -1;
 
-  private offset: number = 0;
+  private padding: number = 0;
 
   private visible: number = 0;
 
@@ -154,7 +154,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         const [start, end]: range = this.state.range;
 
         if (index < start || index >= end) {
-          this.index = index;
+          this.offset = index;
         }
 
         this.scrollTop = rect.top;
@@ -205,31 +205,32 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onItemResize = ({ index, rect }: ResizeEvent): void => {
-    const toIndex: boolean = index === this.index;
-    const rectangle: Rectangle = this.rects[index];
+    const current: Rectangle = this.rects[index];
+    const scrollNeeded: boolean = index === this.offset;
 
     // Reset scroll index
-    if (toIndex) {
-      this.index = -1;
+    if (scrollNeeded) {
+      this.offset = -1;
     }
 
     // Update
-    if (rectangle) {
-      const { height: prevHeight }: Rectangle = rectangle;
+    if (current) {
+      const next: Rectangle = this.rects[index + 1];
+      const { height: prevHeight }: Rectangle = current;
       const [borderBoxSize]: ResizeObserverSize[] = rect.borderBoxSize;
       const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
-      if (height !== prevHeight) {
+      if (height !== prevHeight || (next && next.top !== current.top + prevHeight)) {
         // Update rect
-        rectangle.update({ height });
+        current.update({ height });
 
         // Update anchor
         if (index === this.anchor.index) {
-          this.anchor = rectangle;
+          this.anchor = current;
         }
 
         // Update rects after current
-        this.updateRectsAfter(rectangle);
+        this.updateRectsAfter(current);
 
         // Need update if top or height decrease
         if (!this.state.scrolling && height < prevHeight) {
@@ -238,8 +239,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       }
 
       // Scroll to index if scroll index equal current index
-      if (toIndex) {
-        this.scrollTop = rectangle.top;
+      if (scrollNeeded) {
+        this.scrollTop = current.top;
       }
     }
   };
@@ -299,7 +300,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     return {
       top: rows > start ? rects[start].top : 0,
-      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + this.offset : 0
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + this.padding : 0
     };
   }
 
@@ -433,8 +434,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
           const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
           const { blockSize: statusHeight }: ResizeObserverSize = borderBoxSize;
 
-          if ((statusHeight || this.state.status === STATUS.NONE) && statusHeight !== this.offset) {
-            this.offset = statusHeight;
+          if ((statusHeight || this.state.status === STATUS.NONE) && statusHeight !== this.padding) {
+            this.padding = statusHeight;
 
             this.update(this.scrollTop);
           }
