@@ -97,7 +97,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private window: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private footer: React.RefObject<HTMLDivElement> = React.createRef();
+  private status: React.RefObject<HTMLDivElement> = React.createRef();
 
   // The info of anchor element
   // which is the first element in visible range
@@ -438,7 +438,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
               this.update(this.scrollTop);
             }
             break;
-          case this.footer.current:
+          case this.status.current:
             if ((height || this.state.status === STATUS.NONE) && height !== this.extra) {
               this.extra = height;
 
@@ -452,7 +452,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     });
 
     this.observer.observe(this.viewport, { box: 'border-box' });
-    this.observer.observe(this.footer.current as HTMLElement, { box: 'border-box' });
+    this.observer.observe(this.status.current as HTMLElement, { box: 'border-box' });
 
     viewport.addEventListener('scroll', this.onScroll, useCapture);
   }
@@ -502,10 +502,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(range);
 
     return (
-      <div style={style} ref={this.window} className={className}>
+      <div role="list" style={style} ref={this.window} className={className}>
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
-          <div ref={this.footer}>{this.renderStatus(status)}</div>
+          <div role="status" ref={this.status}>
+            {this.renderStatus(status)}
+          </div>
         </div>
       </div>
     );
