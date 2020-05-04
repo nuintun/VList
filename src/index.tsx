@@ -416,31 +416,28 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     // Resize observer
     this.observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
       for (const entry of entries) {
-        switch (entry.target) {
-          case viewport:
-            const { defaultItemHeight }: VListProps = this.props;
-            const [contentBoxSize]: ResizeObserverSize[] = entry.contentBoxSize;
-            const { blockSize: viewHeight }: ResizeObserverSize = contentBoxSize;
-            const visible: number = Math.ceil(viewHeight / Math.max(1, defaultItemHeight)) + 1;
+        const { target }: ResizeObserverEntry = entry;
 
-            if (visible !== this.visible) {
-              this.visible = visible;
+        if (target === viewport) {
+          const { defaultItemHeight }: VListProps = this.props;
+          const [contentBoxSize]: ResizeObserverSize[] = entry.contentBoxSize;
+          const { blockSize: viewHeight }: ResizeObserverSize = contentBoxSize;
+          const visible: number = Math.ceil(viewHeight / Math.max(1, defaultItemHeight)) + 1;
 
-              this.update(this.scrollTop);
-            }
-            break;
-          case this.status.current:
-            const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
-            const { blockSize: statusHeight }: ResizeObserverSize = borderBoxSize;
+          if (visible !== this.visible) {
+            this.visible = visible;
 
-            if ((statusHeight || this.state.status === STATUS.NONE) && statusHeight !== this.offset) {
-              this.offset = statusHeight;
+            this.update(this.scrollTop);
+          }
+        } else if (target === this.status.current) {
+          const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
+          const { blockSize: statusHeight }: ResizeObserverSize = borderBoxSize;
 
-              this.update(this.scrollTop);
-            }
-            break;
-          default:
-            break;
+          if ((statusHeight || this.state.status === STATUS.NONE) && statusHeight !== this.offset) {
+            this.offset = statusHeight;
+
+            this.update(this.scrollTop);
+          }
         }
       }
     });
