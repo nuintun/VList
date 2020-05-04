@@ -494,10 +494,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(range);
 
     return (
-      <div role="list" style={style} ref={this.window} className={className}>
+      <div ref={this.window} role="list" className={className} style={style}>
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
-          <div role="status" ref={this.status}>
+          <div ref={this.status} role="status">
             {this.renderStatus(status)}
           </div>
         </div>

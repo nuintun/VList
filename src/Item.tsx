@@ -52,7 +52,7 @@ export default class Item extends React.PureComponent<ItemProps> {
     const { items, scrollspy, scrolling, children }: ItemProps = this.props;
 
     return (
-      <div role="listitem" ref={this.node}>
+      <div ref={this.node} role="listitem">
         {scrollspy ? children(items, scrolling) : children(items)}
       </div>
     );
