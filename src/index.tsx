@@ -53,7 +53,6 @@ export interface VListProps {
 
 const enum STATUS {
   NONE,
-  HIDDEN,
   LOADING,
   ENDED
 }
@@ -340,7 +339,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
         const { infinite, onEnded }: VListProps = this.props;
 
-        this.setState({ status: onEnded ? (infinite ? STATUS.HIDDEN : STATUS.ENDED) : STATUS.NONE });
+        this.setState({ status: onEnded && !infinite ? STATUS.ENDED : STATUS.NONE });
       });
     }
   }
@@ -434,7 +433,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
           const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
           const { blockSize: statusHeight }: ResizeObserverSize = borderBoxSize;
 
-          if ((statusHeight || this.state.status === STATUS.NONE) && statusHeight !== this.padding) {
+          if (this.state.status !== STATUS.NONE && statusHeight !== this.padding) {
             this.padding = statusHeight;
 
             this.update(this.scrollTop);
