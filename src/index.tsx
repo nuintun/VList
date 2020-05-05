@@ -190,6 +190,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     for (; next < max; ) {
       const rectangle: Rectangle = rects[next++];
 
+      if (top === rectangle.top) break;
+
       rectangle.update({ top });
 
       top += rectangle.height;
