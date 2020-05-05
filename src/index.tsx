@@ -19,19 +19,25 @@ interface Offset {
 
 interface VListState {
   range: range;
-  status: STATUS;
+  loading: boolean;
   scrolling: boolean;
 }
 
 interface DerivedState {
   range?: range;
-  status?: STATUS;
+  loading?: boolean;
   scrolling?: boolean;
 }
 
 interface ResizeObserverSize {
   readonly inlineSize: number;
   readonly blockSize: number;
+}
+
+export interface STATUS {
+  readonly LOADING: number;
+  readonly LOADED: number;
+  readonly DONE: number;
 }
 
 export interface VListProps {
@@ -43,22 +49,16 @@ export interface VListProps {
   defaultItemHeight: number;
   style?: React.CSSProperties;
   placeholder?: React.ReactNode;
-  onEnded?: () => React.ReactNode;
   onScroll?: (event: Event) => void;
-  onLoading?: () => React.ReactNode;
   onLoadItems?: (resolve: () => void) => void;
   viewport?: (node: HTMLElement) => HTMLElement;
+  footer: (status: number, STATUS: STATUS) => React.ReactNode;
   children: (item: any, scrolling: boolean) => React.ReactNode;
-}
-
-const enum STATUS {
-  INIT,
-  LOADING,
-  LOADED
 }
 
 const LOAD_ITEMS_DEBOUNCE_INTERVAL = 16;
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
+const STATUS: STATUS = Object.freeze({ LOADING: 1, LOADED: 2, DONE: 4 });
 const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0, visibility: 'hidden' };
 const USE_CAPTURE: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
@@ -96,8 +96,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
-  private loading: boolean = false;
-
   private observer: ResizeObserver;
 
   private window: React.RefObject<HTMLDivElement> = React.createRef();
@@ -108,8 +106,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   public state: VListState = {
     range: [0, 0],
-    scrolling: false,
-    status: STATUS.INIT
+    loading: false,
+    scrolling: false
   };
 
   public static getDerivedStateFromProps({ items }: VListProps, { range }: VListState): DerivedState | null {
@@ -325,19 +323,15 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onLoadItems: () => TimeoutID = debounce((): void => {
-    const { viewport }: VList = this;
+    const { viewport, rects }: VList = this;
+    const { loading }: VListState = this.state;
+    const rectLast: Rectangle = rects[rects.length - 1];
     const { infinite, onLoadItems }: VListProps = this.props;
 
-    if (infinite && onLoadItems && !this.loading && viewport.scrollTop + this.height >= viewport.scrollHeight) {
-      this.loading = true;
+    if (infinite && onLoadItems && !loading && (!rectLast || viewport.scrollTop + this.height >= rectLast.bottom)) {
+      this.setState({ loading: true });
 
-      this.setState({ status: STATUS.LOADING });
-
-      onLoadItems((): void => {
-        this.loading = false;
-
-        this.setState({ status: STATUS.LOADED });
-      });
+      onLoadItems((): void => this.setState({ loading: false }));
     }
   }, LOAD_ITEMS_DEBOUNCE_INTERVAL);
 
@@ -356,7 +350,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private scrollEnd: () => TimeoutID = debounce((): void => {
-    // Do something, when scroll stop
     this.setState({ scrolling: false });
   }, SCROLLING_DEBOUNCE_INTERVAL);
 
@@ -454,22 +447,20 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.viewport.removeEventListener('scroll', this.onScroll, USE_CAPTURE);
   }
 
-  private renderStatus(status: STATUS): React.ReactNode {
+  private renderStatus(loading: boolean): React.ReactNode {
     const { items, infinite, placeholder }: VListProps = this.props;
 
     if (!infinite && !items.length) return placeholder;
 
-    const { onLoading, onEnded }: VListProps = this.props;
+    const { footer }: VListProps = this.props;
 
-    if (!infinite && status !== STATUS.LOADING) {
-      return onEnded ? onEnded() : null;
-    }
+    if (!infinite) return footer(STATUS.DONE, STATUS);
 
-    return onLoading ? onLoading() : null;
+    return footer(loading ? STATUS.LOADING : STATUS.LOADED, STATUS);
   }
 
   public render(): React.ReactNode {
-    const { range, status }: VListState = this.state;
+    const { range, loading }: VListState = this.state;
     const { items, style, className }: VListProps = this.props;
     const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(range);
 
@@ -478,7 +469,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
           <div role="status" style={getStatusStyle(items, range)}>
-            {this.renderStatus(status)}
+            {this.renderStatus(loading)}
           </div>
         </div>
       </div>
