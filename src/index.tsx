@@ -52,7 +52,7 @@ export interface VListProps {
 }
 
 const enum STATUS {
-  NONE,
+  INIT,
   LOADING,
   LOADED,
   ENDED
@@ -109,7 +109,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   public state: VListState = {
     range: [0, 0],
     scrolling: false,
-    status: STATUS.NONE
+    status: STATUS.INIT
   };
 
   public static getDerivedStateFromProps({ items }: VListProps, { range }: VListState): DerivedState | null {
