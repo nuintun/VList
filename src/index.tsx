@@ -219,7 +219,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       const [borderBoxSize]: ResizeObserverSize[] = rect.borderBoxSize;
       const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
-      if (height !== prevHeight || (next && next.top !== current.top + prevHeight)) {
+      if (height !== prevHeight) {
         // Update rect
         current.update({ height });
 
@@ -235,6 +235,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         if (!this.state.scrolling && height < prevHeight) {
           this.update(this.viewport.scrollTop);
         }
+      } else if (next && next.top !== current.top + prevHeight) {
+        // Update rects after current
+        this.updateRectsAfter(current);
       }
 
       // Scroll to index if scroll index equal current index
