@@ -5,8 +5,8 @@
 import React from 'react';
 import Rectangle from './Rectangle';
 import Item, { items, ResizeEvent } from './Item';
+import { debounce, supportsPassive, TimeoutID } from './utils';
 import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
-import { cancelTimeout, requestTimeout, supportsPassive, TimeoutID } from './utils';
 
 type range = [number, number];
 type overscan = number | 'auto';
@@ -57,6 +57,7 @@ const enum STATUS {
   LOADED
 }
 
+const LOAD_ITEMS_DEBOUNCE_INTERVAL = 16;
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
 const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0, visibility: 'hidden' };
 const USE_CAPTURE: useCapture = supportsPassive ? { passive: true, capture: false } : false;
@@ -82,7 +83,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     scrollspy: false
   };
 
-  private timer: TimeoutID;
+  private height: number = 0;
 
   private offset: number = -1;
 
@@ -197,7 +198,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private onItemResize = ({ index, rect }: ResizeEvent): void => {
+  private onItemResize: (event: ResizeEvent) => void = ({ index, rect }: ResizeEvent): void => {
     const current: Rectangle = this.rects[index];
     const scrollNeeded: boolean = index === this.offset;
 
@@ -323,10 +324,11 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     return nodes;
   }
 
-  private onLoadItems(): void {
-    const { items, infinite, onLoadItems }: VListProps = this.props;
+  private onLoadItems: () => TimeoutID = debounce((): void => {
+    const { viewport }: VList = this;
+    const { infinite, onLoadItems }: VListProps = this.props;
 
-    if (infinite && !this.loading && onLoadItems && this.anchor.index + this.visible >= items.length) {
+    if (infinite && onLoadItems && !this.loading && viewport.scrollTop + this.height >= viewport.scrollHeight) {
       this.loading = true;
 
       this.setState({ status: STATUS.LOADING });
@@ -337,7 +339,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         this.setState({ status: STATUS.LOADED });
       });
     }
-  }
+  }, LOAD_ITEMS_DEBOUNCE_INTERVAL);
 
   private update(scrollTop: number): void {
     this.anchor = this.getAnchor(scrollTop);
@@ -353,10 +355,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.onLoadItems();
   }
 
-  private scrollEnd = (): void => {
+  private scrollEnd: () => TimeoutID = debounce((): void => {
     // Do something, when scroll stop
     this.setState({ scrolling: false });
-  };
+  }, SCROLLING_DEBOUNCE_INTERVAL);
 
   private onScroll = (event: Event): void => {
     const { scrollTop }: VList = this;
@@ -365,30 +367,30 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     // On iOS, we can arrive at negative offsets by swiping past the start.
     // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen.
     if (scrollTop >= 0) {
+      const { anchor, location }: VList = this;
       const { scrollspy }: VListProps = this.props;
+      const scrollDown: boolean = scrollTop < location && scrollTop <= anchor.top;
+      const scrollUp: boolean = scrollTop > location && scrollTop >= anchor.bottom;
 
       // Use scrollspy
       if (scrollspy) {
-        cancelTimeout(this.timer);
-
         // Set scrolling
         this.setState({ scrolling: true });
       }
 
-      const { anchor, location }: VList = this;
-      const scrollDown: boolean = scrollTop < location && scrollTop <= anchor.top;
-      const scrollUp: boolean = scrollTop > location && scrollTop >= anchor.bottom;
-
       if (scrollUp || scrollDown) {
         this.update(scrollTop);
+      } else {
+        this.onLoadItems();
       }
-
-      this.location = scrollTop;
 
       // Set a timer to judge scroll of element is stopped
       if (scrollspy) {
-        this.timer = requestTimeout(this.scrollEnd, SCROLLING_DEBOUNCE_INTERVAL);
+        this.scrollEnd();
       }
+
+      // Cache scroll top
+      this.location = scrollTop;
     }
 
     // Trigger user scroll handle
@@ -419,8 +421,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
           const { blockSize: viewHeight }: ResizeObserverSize = contentBoxSize;
           const visible: number = Math.ceil(viewHeight / Math.max(1, defaultItemHeight)) + 1;
 
-          if (visible !== this.visible) {
+          if (viewHeight !== this.height || visible !== this.visible) {
             this.visible = visible;
+            this.height = viewHeight;
 
             this.update(this.scrollTop);
           }
@@ -446,8 +449,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   public componentWillUnmount(): void {
-    cancelTimeout(this.timer);
-
     this.observer.disconnect();
 
     this.viewport.removeEventListener('scroll', this.onScroll, USE_CAPTURE);

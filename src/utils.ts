@@ -27,11 +27,11 @@ const hasPerformance: boolean = performance && typeof performance.now === 'funct
 
 const now: () => number = hasPerformance ? (): number => performance.now() : (): number => Date.now();
 
-export function cancelTimeout(timeoutID: TimeoutID): void {
+function cancelTimeout(timeoutID: TimeoutID): void {
   timeoutID && cancelAnimationFrame(timeoutID.id);
 }
 
-export function requestTimeout(callback: () => void, delay: number): TimeoutID {
+function requestTimeout(callback: () => void, delay: number): TimeoutID {
   const start: number = now();
 
   const tick: () => void = (): void => {
@@ -45,4 +45,14 @@ export function requestTimeout(callback: () => void, delay: number): TimeoutID {
   };
 
   return timeoutID;
+}
+
+export function debounce(callback: () => void, delay: number): () => TimeoutID {
+  let timer: TimeoutID;
+
+  return (): TimeoutID => {
+    cancelTimeout(timer);
+
+    return (timer = requestTimeout(callback, delay));
+  };
 }
