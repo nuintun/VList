@@ -54,12 +54,13 @@ export interface VListProps {
 const enum STATUS {
   NONE,
   LOADING,
+  LOADED,
   ENDED
 }
 
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
-
-const useCapture: useCapture = supportsPassive ? { passive: true, capture: false } : false;
+const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0 };
+const USE_CAPTURE: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
 function getOverscan(overscan: overscan, fallback: number) {
   return overscan === 'auto' || overscan < 0 ? fallback : overscan;
@@ -69,6 +70,10 @@ function getViewport({ viewport }: VListProps, fallback: React.RefObject<HTMLEle
   const node: HTMLElement = fallback.current as HTMLElement;
 
   return viewport ? viewport(node) : (node as HTMLElement);
+}
+
+function getStatusStyle(items: items, [, end]: range): React.CSSProperties | undefined {
+  if (end < items.length) return STATUS_HIDDEN_STYLE;
 }
 
 export default class VList extends React.PureComponent<VListProps, VListState> {
@@ -81,8 +86,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   private timer: TimeoutID;
 
   private offset: number = -1;
-
-  private padding: number = 0;
 
   private visible: number = 0;
 
@@ -99,8 +102,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private window: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private status: React.RefObject<HTMLDivElement> = React.createRef();
-
   // The info of anchor element
   // which is the first element in visible range
   private anchor: Rectangle = new Rectangle({ index: 0, height: this.props.defaultItemHeight });
@@ -115,15 +116,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const [start, end]: range = range;
     const { length: rows }: items = items;
 
-    if (rows) {
-      if (rows && rows < end) {
-        return { range: [Math.min(rows - 1, start), rows] };
-      }
-    } else if (start || end) {
-      return { range: [0, 0] };
-    }
+    if (end <= rows) return null;
 
-    return null;
+    return { range: [start < rows ? start : 0, Math.min(rows, end)] };
   }
 
   public set scrollTop(scrollTop: number) {
@@ -302,7 +297,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     return {
       top: rows > start ? rects[start].top : 0,
-      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top + this.padding : 0
+      bottom: rows && rows > end ? rects[rows - 1].bottom - rects[end].top : 0
     };
   }
 
@@ -330,19 +325,19 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onLoadItems(): void {
-    const { items, infinite, onLoadItems, onLoading }: VListProps = this.props;
+    const { items, infinite, onLoadItems }: VListProps = this.props;
 
     if (infinite && !this.loading && onLoadItems && this.anchor.index + this.visible >= items.length) {
       this.loading = true;
 
-      this.setState({ status: onLoading ? STATUS.LOADING : STATUS.NONE });
+      this.setState({ status: STATUS.LOADING });
 
       onLoadItems((): void => {
         this.loading = false;
 
-        const { infinite, onEnded }: VListProps = this.props;
+        const { infinite }: VListProps = this.props;
 
-        this.setState({ status: onEnded && !infinite ? STATUS.ENDED : STATUS.NONE });
+        this.setState({ status: infinite ? STATUS.LOADED : STATUS.ENDED });
       });
     }
   }
@@ -432,23 +427,13 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
             this.update(this.scrollTop);
           }
-        } else if (target === this.status.current) {
-          const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
-          const { blockSize: statusHeight }: ResizeObserverSize = borderBoxSize;
-
-          if (this.state.status !== STATUS.NONE && statusHeight !== this.padding) {
-            this.padding = statusHeight;
-
-            this.update(this.scrollTop);
-          }
         }
       }
     });
 
     this.observer.observe(this.viewport, { box: 'border-box' });
-    this.observer.observe(this.status.current as HTMLElement, { box: 'border-box' });
 
-    viewport.addEventListener('scroll', this.onScroll, useCapture);
+    viewport.addEventListener('scroll', this.onScroll, USE_CAPTURE);
   }
 
   public componentDidUpdate({ items: prevItems }: VListProps): void {
@@ -468,7 +453,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     this.observer.disconnect();
 
-    this.viewport.removeEventListener('scroll', this.onScroll, useCapture);
+    this.viewport.removeEventListener('scroll', this.onScroll, USE_CAPTURE);
   }
 
   private renderStatus(status: STATUS): React.ReactNode {
@@ -480,11 +465,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     switch (status) {
       case STATUS.LOADING:
+      case STATUS.LOADED:
         return onLoading ? onLoading() : null;
       case STATUS.ENDED:
-        const [, end]: range = this.state.range;
-
-        return onEnded && end >= items.length ? onEnded() : null;
+        return onEnded ? onEnded() : null;
       default:
         return null;
     }
@@ -492,14 +476,14 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   public render(): React.ReactNode {
     const { range, status }: VListState = this.state;
-    const { style, className }: VListProps = this.props;
+    const { items, style, className }: VListProps = this.props;
     const { top: paddingTop, bottom: paddingBottom }: Offset = this.getOffset(range);
 
     return (
       <div ref={this.window} role="list" className={className} style={style}>
         <div style={{ paddingTop, paddingBottom }}>
           {this.getItems(range)}
-          <div ref={this.status} role="status">
+          <div role="status" style={getStatusStyle(items, range)}>
             {this.renderStatus(status)}
           </div>
         </div>
