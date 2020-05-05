@@ -59,7 +59,7 @@ const enum STATUS {
 }
 
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
-const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0 };
+const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0, visibility: 'hidden' };
 const USE_CAPTURE: useCapture = supportsPassive ? { passive: true, capture: false } : false;
 
 function getOverscan(overscan: overscan, fallback: number) {
