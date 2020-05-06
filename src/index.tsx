@@ -56,7 +56,7 @@ export interface VListProps {
   children: (item: any, scrolling: boolean) => React.ReactNode;
 }
 
-const LOAD_ITEMS_DEBOUNCE_INTERVAL = 16;
+const REQUEST_DEBOUNCE_INTERVAL = 16;
 const DEFER_UPDATE_DEBOUNCE_INTERVAL = 16;
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
 const STATUS: STATUS = Object.freeze({ LOADING: 1, LOADED: 2, DONE: 4 });
@@ -335,7 +335,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
       onRequest((): void => this.setState({ loading: false }));
     }
-  }, LOAD_ITEMS_DEBOUNCE_INTERVAL);
+  }, REQUEST_DEBOUNCE_INTERVAL);
 
   private update(scrollTop: number): void {
     this.anchor = this.getAnchor(scrollTop);
