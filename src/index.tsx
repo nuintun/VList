@@ -222,11 +222,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         // Update rect
         current.update({ top, height });
 
-        // Update anchor
-        if (index === this.anchor.index) {
-          this.anchor = current;
-        }
-
         // Update rects after current
         this.updateRectsAfter(current);
 
