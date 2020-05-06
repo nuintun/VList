@@ -50,7 +50,7 @@ export interface VListProps {
   style?: React.CSSProperties;
   placeholder?: React.ReactNode;
   onScroll?: (event: Event) => void;
-  onLoadItems?: (resolve: () => void) => void;
+  onRequest?: (resolve: () => void) => void;
   viewport?: (node: HTMLElement) => HTMLElement;
   footer: (status: number, STATUS: STATUS) => React.ReactNode;
   children: (item: any, scrolling: boolean) => React.ReactNode;
@@ -324,16 +324,16 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     return nodes;
   }
 
-  private onLoadItems: () => void = debounce((): void => {
+  private onRequest: () => void = debounce((): void => {
     const { rects }: VList = this;
     const { loading }: VListState = this.state;
     const rectLast: Rectangle = rects[rects.length - 1];
-    const { infinite, onLoadItems }: VListProps = this.props;
+    const { infinite, onRequest }: VListProps = this.props;
 
-    if (infinite && onLoadItems && !loading && (!rectLast || this.scrollTop + this.height >= rectLast.bottom)) {
+    if (infinite && onRequest && !loading && (!rectLast || this.scrollTop + this.height >= rectLast.bottom)) {
       this.setState({ loading: true });
 
-      onLoadItems((): void => this.setState({ loading: false }));
+      onRequest((): void => this.setState({ loading: false }));
     }
   }, LOAD_ITEMS_DEBOUNCE_INTERVAL);
 
@@ -348,7 +348,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       this.setState({ range });
     }
 
-    this.onLoadItems();
+    this.onRequest();
   }
 
   private deferUpdate = debounce((scrollTop: number): void => {
@@ -385,7 +385,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       if (scrollUp || scrollDown) {
         this.update(scrollTop);
       } else {
-        this.onLoadItems();
+        this.onRequest();
       }
 
       // Set a timer to judge scroll of element is stopped
@@ -410,7 +410,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.updateRects();
 
     // Init items
-    this.onLoadItems();
+    this.onRequest();
 
     // Resize observer
     this.observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
