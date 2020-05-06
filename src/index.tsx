@@ -458,9 +458,9 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (!infinite && !items.length) return placeholder;
 
-    const { footer }: VListProps = this.props;
+    const { footer, onRequest }: VListProps = this.props;
 
-    if (!infinite) return footer(STATUS.DONE, STATUS);
+    if (!infinite || !onRequest) return footer(STATUS.DONE, STATUS);
 
     return footer(loading ? STATUS.LOADING : STATUS.LOADED, STATUS);
   }
