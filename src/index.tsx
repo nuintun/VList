@@ -52,7 +52,7 @@ export interface VListProps {
   onScroll?: (event: Event) => void;
   onRequest?: (resolve: () => void) => void;
   viewport?: (node: HTMLElement) => HTMLElement;
-  footer: (status: number, STATUS: STATUS) => React.ReactNode;
+  footer?: (status: number, STATUS: STATUS) => React.ReactNode;
   children: (item: any, scrolling: boolean) => React.ReactNode;
 }
 
@@ -459,6 +459,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     if (!infinite && !items.length) return placeholder;
 
     const { footer, onRequest }: VListProps = this.props;
+
+    if (!footer) return null;
 
     if (!infinite || !onRequest) return footer(STATUS.DONE, STATUS);
 
