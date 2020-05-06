@@ -355,8 +355,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { scrollTop }: VList = this;
     const { onScroll }: VListProps = this.props;
 
-    // On iOS, we can arrive at negative offsets by swiping past the start.
-    // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen.
+    // On iOS, we can arrive at negative offsets by swiping past the start
+    // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen
     if (scrollTop >= 0) {
       const { anchor, location }: VList = this;
       const { scrollspy }: VListProps = this.props;
@@ -379,10 +379,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       if (scrollspy) {
         this.scrollEnd();
       }
-
-      // Cache scroll top
-      this.location = scrollTop;
     }
+
+    // Cache scroll top
+    this.location = scrollTop;
 
     // Trigger user scroll handle
     onScroll && onScroll(event);
