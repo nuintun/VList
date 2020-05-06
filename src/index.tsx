@@ -220,7 +220,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
         // Need update if not scrolling
         if (!this.state.scrolling) {
-          this.update(this.viewport.scrollTop);
+          this.update(this.location);
         }
       };
 
