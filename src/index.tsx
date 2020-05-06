@@ -57,6 +57,7 @@ export interface VListProps {
 }
 
 const LOAD_ITEMS_DEBOUNCE_INTERVAL = 16;
+const DEFER_UPDATE_DEBOUNCE_INTERVAL = 16;
 const SCROLLING_DEBOUNCE_INTERVAL: number = 150;
 const STATUS: STATUS = Object.freeze({ LOADING: 1, LOADED: 2, DONE: 4 });
 const STATUS_HIDDEN_STYLE: React.CSSProperties = { opacity: 0, visibility: 'hidden' };
@@ -95,6 +96,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private viewport: HTMLElement;
 
+  private scrolling: boolean = false;
+
   // Cache position info of item rendered
   private rects: Rectangle[] = [];
 
@@ -129,7 +132,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
       scrollTop = viewport.scrollTop;
 
-      this.update(scrollTop);
+      this.deferUpdate(scrollTop);
 
       this.location = scrollTop;
     }
@@ -226,8 +229,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         this.updateRectsAfter(current);
 
         // Need update if not scrolling
-        if (!this.state.scrolling) {
-          this.update(this.scrollTop);
+        if (!this.scrolling) {
+          this.deferUpdate(this.scrollTop);
         }
       }
 
@@ -347,24 +350,33 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.onLoadItems();
   }
 
+  private deferUpdate = debounce((scrollTop: number): void => {
+    this.update(scrollTop);
+  }, DEFER_UPDATE_DEBOUNCE_INTERVAL);
+
   private scrollEnd: () => TimeoutID = debounce((): void => {
-    this.setState({ scrolling: false });
+    this.scrolling = false;
+
+    if (this.props.scrollspy) {
+      this.setState({ scrolling: false });
+    }
   }, SCROLLING_DEBOUNCE_INTERVAL);
 
   private onScroll = (event: Event): void => {
     const { scrollTop }: VList = this;
     const { onScroll }: VListProps = this.props;
 
+    this.scrolling = true;
+
     // On iOS, we can arrive at negative offsets by swiping past the start
     // To prevent flicker here, we make playing in the negative offset zone cause nothing to happen
     if (scrollTop >= 0) {
       const { anchor, location }: VList = this;
-      const { scrollspy }: VListProps = this.props;
       const scrollDown: boolean = scrollTop < location && scrollTop <= anchor.top;
       const scrollUp: boolean = scrollTop > location && scrollTop >= anchor.bottom;
 
       // Use scrollspy
-      if (scrollspy) {
+      if (this.props.scrollspy) {
         // Set scrolling
         this.setState({ scrolling: true });
       }
@@ -376,9 +388,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
       }
 
       // Set a timer to judge scroll of element is stopped
-      if (scrollspy) {
-        this.scrollEnd();
-      }
+      this.scrollEnd();
     }
 
     // Cache scroll top
@@ -419,7 +429,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
             this.visible = visible;
             this.height = viewHeight;
 
-            this.update(this.scrollTop);
+            this.deferUpdate(this.scrollTop);
           }
         }
       }
@@ -435,10 +445,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     if (items !== prevItems) {
       this.updateRects();
-
-      requestAnimationFrame((): void => {
-        this.update(this.scrollTop);
-      });
+      this.deferUpdate(this.scrollTop);
     }
   }
 
