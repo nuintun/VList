@@ -88,8 +88,6 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
   private offset: number = -1;
 
-  private padding: number = 0;
-
   private visible: number = 0;
 
   private location: number = 0;
@@ -183,29 +181,25 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   };
 
   private updateRectsAfter(rect: Rectangle): void {
-    const { rects }: VList = this;
-    const [, end]: range = this.state.range;
-
     // Next index
+    let top: number = rect.bottom;
     let next: number = rect.index + 1;
 
+    const { rects }: VList = this;
+    const [, end]: range = this.state.range;
     // Only end item need update all rects after it
-    if (next === end) {
-      let top: number = rect.bottom;
+    const max: number = next < end ? end : rects.length;
 
-      const { length: rectRows }: Rectangle[] = rects;
+    for (; next < max; ) {
+      const rectangle: Rectangle = rects[next++];
 
-      for (; next < rectRows; ) {
-        const rectangle: Rectangle = rects[next++];
+      rectangle.update({ top });
 
-        rectangle.update({ top });
-
-        top += rectangle.height;
-      }
+      top += rectangle.height;
     }
   }
 
-  private onItemResize: (event: ResizeEvent) => void = ({ index, rect }: ResizeEvent): void => {
+  private onItemResize: (event: ResizeEvent) => void = ({ index, entry }: ResizeEvent): void => {
     const current: Rectangle = this.rects[index];
     const scrollNeeded: boolean = index === this.offset;
 
@@ -216,22 +210,35 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     // Update
     if (current) {
-      const { height }: DOMRect = rect;
-      const { viewport }: VList = this;
-      const { top: viewportTop }: DOMRect = viewport.getBoundingClientRect();
-      const top: number = rect.top - viewportTop - this.padding + viewport.scrollTop;
+      const next: Rectangle = this.rects[index + 1];
+      const { height: prevHeight }: Rectangle = current;
+      const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
+      const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
-      if (top !== current.top || height !== current.height) {
-        // Update rect
-        current.update({ top, height });
-
+      const updateItemsAfter = (rect: Rectangle) => {
         // Update rects after current
-        this.updateRectsAfter(current);
+        this.updateRectsAfter(rect);
 
         // Need update if not scrolling
         if (!this.scrolling) {
-          this.deferUpdate(this.scrollTop);
+          this.update(this.scrollTop);
         }
+      };
+
+      if (height !== prevHeight) {
+        // Update rect
+        current.update({ height });
+
+        // Update anchor
+        if (index === this.anchor.index) {
+          this.anchor = current;
+        }
+
+        // Update items after current
+        updateItemsAfter(current);
+      } else if (next && next.top !== current.top + prevHeight) {
+        // Update items after current
+        updateItemsAfter(current);
       }
 
       // Scroll to index if scroll index equal current index
@@ -417,13 +424,10 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         const { target }: ResizeObserverEntry = entry;
 
         if (target === viewport) {
-          const { top }: DOMRect = entry.contentRect;
           const { defaultItemHeight }: VListProps = this.props;
           const [contentBoxSize]: ResizeObserverSize[] = entry.contentBoxSize;
           const { blockSize: viewHeight }: ResizeObserverSize = contentBoxSize;
           const visible: number = Math.ceil(viewHeight / Math.max(1, defaultItemHeight)) + 1;
-
-          this.padding = top;
 
           if (viewHeight !== this.height || visible !== this.visible) {
             this.visible = visible;
