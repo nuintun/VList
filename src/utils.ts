@@ -21,38 +21,23 @@ export const supportsPassive: boolean = ((): boolean => {
   return supportsPassive;
 })();
 
-export type TimeoutID = { id: number };
+export function debounce(callback: (...args: any[]) => void, delay: number): (...args: any[]) => void {
+  let raf: number;
+  let start: number;
 
-const hasPerformance: boolean = performance && typeof performance.now === 'function';
+  return (...args: any[]): void => {
+    cancelAnimationFrame(raf);
 
-const now: () => number = hasPerformance ? (): number => performance.now() : (): number => Date.now();
+    const tick = (timestamp: number) => {
+      start = start || timestamp;
 
-function cancelTimeout(timeoutID: TimeoutID): void {
-  timeoutID && cancelAnimationFrame(timeoutID.id);
-}
+      if (timestamp - start >= delay) {
+        callback(...args);
+      } else {
+        raf = requestAnimationFrame(tick);
+      }
+    };
 
-function requestTimeout(callback: () => void, delay: number): TimeoutID {
-  const start: number = now();
-
-  const tick: () => void = (): void => {
-    if (now() - start >= delay) return callback();
-
-    timeoutID.id = requestAnimationFrame(tick);
-  };
-
-  const timeoutID: TimeoutID = {
-    id: requestAnimationFrame(tick)
-  };
-
-  return timeoutID;
-}
-
-export function debounce(callback: (...args: any[]) => void, delay: number): (...args: any[]) => TimeoutID {
-  let timer: TimeoutID;
-
-  return (...args: any[]): TimeoutID => {
-    cancelTimeout(timer);
-
-    return (timer = requestTimeout((): void => callback(...args), delay));
+    raf = requestAnimationFrame(tick);
   };
 }

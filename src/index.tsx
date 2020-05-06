@@ -5,7 +5,7 @@
 import React from 'react';
 import Rectangle from './Rectangle';
 import Item, { items, ResizeEvent } from './Item';
-import { debounce, supportsPassive, TimeoutID } from './utils';
+import { debounce, supportsPassive } from './utils';
 import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
 
 type range = [number, number];
@@ -323,7 +323,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     return nodes;
   }
 
-  private onLoadItems: () => TimeoutID = debounce((): void => {
+  private onLoadItems: () => void = debounce((): void => {
     const { rects }: VList = this;
     const { loading }: VListState = this.state;
     const rectLast: Rectangle = rects[rects.length - 1];
@@ -354,7 +354,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     this.update(scrollTop);
   }, DEFER_UPDATE_DEBOUNCE_INTERVAL);
 
-  private scrollEnd: () => TimeoutID = debounce((): void => {
+  private scrollEnd: () => void = debounce((): void => {
     this.scrolling = false;
 
     if (this.props.scrollspy) {
