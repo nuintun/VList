@@ -7,9 +7,11 @@ import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
 
 export type items = any[];
 
+type callback = (entry: ResizeObserverEntry) => void;
+
 export interface ResizeEvent {
   index: number;
-  rect: ResizeObserverEntry;
+  entry: ResizeObserverEntry;
 }
 
 export interface ItemProps {
@@ -21,31 +23,39 @@ export interface ItemProps {
   children: (data: any, scrolling?: boolean) => React.ReactNode;
 }
 
-export default class Item extends React.PureComponent<ItemProps> {
-  private observer: ResizeObserver;
+const callbacks: WeakMap<Element, callback> = new WeakMap<Element, callback>();
 
+const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
+  for (const entry of entries) {
+    const { target }: ResizeObserverEntry = entry;
+
+    if (callbacks.has(target)) {
+      (callbacks.get(target) as callback)(entry);
+    }
+  }
+});
+
+export default class Item extends React.PureComponent<ItemProps> {
   private node: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private onResize = (entries: ResizeObserverEntry[]): void => {
-    for (const entry of entries) {
-      if (entry.target === this.node.current) {
-        const { index }: ItemProps = this.props;
+  private onResize = (entry: ResizeObserverEntry): void => {
+    const { index }: ItemProps = this.props;
 
-        this.props.onResize({ index, rect: entry });
-      }
-    }
+    this.props.onResize({ index, entry });
   };
 
   public componentDidMount(): void {
-    const node: HTMLDivElement | null = this.node.current;
+    const node: HTMLDivElement = this.node.current as HTMLDivElement;
 
-    this.observer = new ResizeObserver(this.onResize);
-
-    this.observer.observe(node as HTMLDivElement, { box: 'border-box' });
+    callbacks.set(node, this.onResize);
+    observer.observe(node, { box: 'border-box' });
   }
 
   public componentWillUnmount(): void {
-    this.observer.disconnect();
+    const node: HTMLDivElement = this.node.current as HTMLDivElement;
+
+    callbacks.delete(node);
+    observer.unobserve(node);
   }
 
   public render(): React.ReactNode {

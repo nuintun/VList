@@ -198,7 +198,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     }
   }
 
-  private onItemResize: (event: ResizeEvent) => void = ({ index, rect }: ResizeEvent): void => {
+  private onItemResize: (event: ResizeEvent) => void = ({ index, entry }: ResizeEvent): void => {
     const current: Rectangle = this.rects[index];
     const scrollNeeded: boolean = index === this.offset;
 
@@ -211,7 +211,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     if (current) {
       const next: Rectangle = this.rects[index + 1];
       const { height: prevHeight }: Rectangle = current;
-      const [borderBoxSize]: ResizeObserverSize[] = rect.borderBoxSize;
+      const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
       const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
       if (height !== prevHeight) {
