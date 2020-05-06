@@ -210,10 +210,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
     // Update
     if (current) {
-      const prev: Rectangle = this.rects[index - 1];
       const next: Rectangle = this.rects[index + 1];
       const { height: prevHeight }: Rectangle = current;
-      const top: number = prev ? prev.bottom : current.top;
       const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
       const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
@@ -227,13 +225,13 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         }
       };
 
-      if (top !== current.top || height !== prevHeight) {
+      if (height !== prevHeight) {
         // Update rect
-        current.update({ top, height });
+        current.update({ height });
 
         // Update items after current
         updateItemsAfter(current);
-      } else if (next && next.top !== current.top + prevHeight) {
+      } else if (next && next.top !== current.bottom) {
         // Update items after current
         updateItemsAfter(current);
       }
