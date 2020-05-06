@@ -7,11 +7,11 @@ import { ResizeObserver, ResizeObserverEntry } from '@juggle/resize-observer';
 
 export type items = any[];
 
-type callback = (entry: ResizeObserverEntry) => void;
+type callback = (rect: DOMRect) => void;
 
 export interface ResizeEvent {
   index: number;
-  entry: ResizeObserverEntry;
+  rect: DOMRect;
 }
 
 export interface ItemProps {
@@ -30,7 +30,7 @@ const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
     const { target }: ResizeObserverEntry = entry;
 
     if (callbacks.has(target)) {
-      (callbacks.get(target) as callback)(entry);
+      (callbacks.get(target) as callback)(target.getBoundingClientRect());
     }
   }
 });
@@ -38,10 +38,10 @@ const observer = new ResizeObserver((entries: ResizeObserverEntry[]): void => {
 export default class Item extends React.PureComponent<ItemProps> {
   private node: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private onResize = (entry: ResizeObserverEntry): void => {
+  private onResize = (rect: DOMRect): void => {
     const { index }: ItemProps = this.props;
 
-    this.props.onResize({ index, entry });
+    this.props.onResize({ index, rect });
   };
 
   public componentDidMount(): void {
