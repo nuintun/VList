@@ -220,7 +220,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
         // Need update if not scrolling
         if (!this.state.scrolling) {
-          this.update(this.location);
+          this.update(this.scrollTop);
         }
       };
 
@@ -330,12 +330,12 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
   }
 
   private onLoadItems: () => TimeoutID = debounce((): void => {
-    const { viewport, rects }: VList = this;
+    const { rects }: VList = this;
     const { loading }: VListState = this.state;
     const rectLast: Rectangle = rects[rects.length - 1];
     const { infinite, onLoadItems }: VListProps = this.props;
 
-    if (infinite && onLoadItems && !loading && (!rectLast || viewport.scrollTop + this.height >= rectLast.bottom)) {
+    if (infinite && onLoadItems && !loading && (!rectLast || this.scrollTop + this.height >= rectLast.bottom)) {
       this.setState({ loading: true });
 
       onLoadItems((): void => this.setState({ loading: false }));
