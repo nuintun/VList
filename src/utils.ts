@@ -47,12 +47,12 @@ function requestTimeout(callback: () => void, delay: number): TimeoutID {
   return timeoutID;
 }
 
-export function debounce(callback: () => void, delay: number): () => TimeoutID {
+export function debounce(callback: (...args: any[]) => void, delay: number): (...args: any[]) => TimeoutID {
   let timer: TimeoutID;
 
-  return (): TimeoutID => {
+  return (...args: any[]): TimeoutID => {
     cancelTimeout(timer);
 
-    return (timer = requestTimeout(callback, delay));
+    return (timer = requestTimeout((): void => callback(...args), delay));
   };
 }
