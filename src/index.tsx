@@ -226,13 +226,18 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
         // Update rects after current
         this.updateRectsAfter(current);
 
-        // Need update if top or height decrease
-        if (!this.state.scrolling && height < prevHeight) {
+        // Need update if not scrolling
+        if (!this.state.scrolling) {
           this.update(this.viewport.scrollTop);
         }
       } else if (next && next.top !== current.top + prevHeight) {
         // Update rects after current
         this.updateRectsAfter(current);
+
+        // Need update if not scrolling
+        if (!this.state.scrolling) {
+          this.update(this.viewport.scrollTop);
+        }
       }
 
       // Scroll to index if scroll index equal current index
