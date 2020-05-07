@@ -25,19 +25,21 @@ export function debounce(callback: (...args: any[]) => void, delay: number): (..
   let raf: number;
   let start: number;
 
+  const tick = (timestamp: number, args: any[]): void => {
+    if (timestamp - start >= delay) {
+      callback(...args);
+    } else {
+      raf = requestAnimationFrame((timestamp: number): void => {
+        tick(timestamp, args);
+      });
+    }
+  };
+
   return (...args: any[]): void => {
     cancelAnimationFrame(raf);
 
-    const tick = (timestamp: number) => {
-      start = start || timestamp;
-
-      if (timestamp - start >= delay) {
-        callback(...args);
-      } else {
-        raf = requestAnimationFrame(tick);
-      }
-    };
-
-    raf = requestAnimationFrame(tick);
+    raf = requestAnimationFrame((timestamp: number): void => {
+      tick((start = timestamp), args);
+    });
   };
 }
