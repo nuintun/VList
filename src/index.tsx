@@ -437,6 +437,8 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     const { items }: VListProps = this.props;
 
     if (items !== prevItems) {
+      this.offset = -1;
+
       this.updateRects();
       this.deferUpdate(this.scrollTop);
     }
