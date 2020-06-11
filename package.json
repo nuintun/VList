@@ -1,6 +1,6 @@
 {
-  "name": "@nuintun/vlist",
-  "version": "0.16.3",
+  "name": "rc-virtual",
+  "version": "1.0.0",
   "description": "React virtual list component, support dynamic height.",
   "main": "es5/index.js",
   "module": "esnext/index.js",
@@ -42,6 +42,6 @@
     "react": "^16.13.1",
     "typescript": "^3.9.5",
     "react-dom": "^16.13.1",
-    "@types/react": "^16.9.35"
+    "@types/react": "^16.9.36"
   }
 }
