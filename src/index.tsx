@@ -214,7 +214,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
     // Update
     if (current) {
       const { offsetTop: top }: HTMLDivElement = entry.target as HTMLDivElement;
-      const [borderBoxSize]: ResizeObserverSize[] = entry.borderBoxSize;
+      const [borderBoxSize]: readonly ResizeObserverSize[] = entry.borderBoxSize;
       const { blockSize: height }: ResizeObserverSize = borderBoxSize;
 
       if (top !== current.top || height !== current.height) {
@@ -414,7 +414,7 @@ export default class VList extends React.PureComponent<VListProps, VListState> {
 
         if (target === viewport) {
           const { defaultItemHeight }: VListProps = this.props;
-          const [contentBoxSize]: ResizeObserverSize[] = entry.contentBoxSize;
+          const [contentBoxSize]: readonly ResizeObserverSize[] = entry.contentBoxSize;
           const { blockSize: viewHeight }: ResizeObserverSize = contentBoxSize;
           const visible: number = Math.ceil(viewHeight / Math.max(1, defaultItemHeight)) + 1;
 
